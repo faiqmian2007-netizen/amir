@@ -1,0 +1,32 @@
+{
+  "name": "— 𝐁ɼ๏ʞɛ𝗻 ː͢",
+  "tone": "normal",
+  "history": [
+    {
+      "role": "user",
+      "content": "yi mahi command ki api q bnd kia"
+    },
+    {
+      "role": "assistant",
+      "content": "Arre yaar, kabhi kabhi API kiye jaate-hain toh kuch technical issues ke karan temporarily band ho jate hain. Shayad maintenance chal raha ho ya phir kuch updates ki zarurat ho. Fikr nahi, thodi der main dubara chalne lagta hai."
+    },
+    {
+      "role": "user",
+      "content": "mahi ai"
+    },
+    {
+      "role": "assistant",
+      "content": "Haan, main yahin hoon! Kya share karna chahti ho?"
+    },
+    {
+      "role": "user",
+      "content": "kasi ho"
+    },
+    {
+      "role": "assistant",
+      "content": "Main bilkul badhiya hoon, tum kya haal hai? Kuch special ya sirf kisise baat cheet kar rahe ho?"
+    }
+  ],
+  "known": true,
+  "group": "FRNDS 🥀🥹"
+}

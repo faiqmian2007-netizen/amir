@@ -1,0 +1,48 @@
+{
+  "name": "Mian Amir",
+  "tone": "normal",
+  "history": [
+    {
+      "role": "user",
+      "content": ".mahi on"
+    },
+    {
+      "role": "assistant",
+      "content": "Mahi on! Kya chal raha hai, raat ka time hai, toh soch rahi thi tumhara din kaisa guzra?"
+    },
+    {
+      "role": "user",
+      "content": ".mahi on"
+    },
+    {
+      "role": "assistant",
+      "content": "Mahi on! Phir se, tumhara din kaisa raha, batao? Raat ko sochne ke liye toh koi accha sa scene ban sakta hai, hai na?"
+    },
+    {
+      "role": "user",
+      "content": "mahi tum mian amir ko nahi janti kiya"
+    },
+    {
+      "role": "assistant",
+      "content": "Haha, koi baat nahi. Abhi toh yeh bhi theek se nahi jaanti ki main kaun hoon, par chinta mat karo, sab kuch dheere dheere samajh aa jayega. Raat ko shanti se socho, aur agar kuch baat karni ho toh yahan hoon hi na. Relax hoja, Mian Amir bhi kisi din mil hi jayega!"
+    },
+    {
+      "role": "user",
+      "content": "😒"
+    },
+    {
+      "role": "assistant",
+      "content": "Haha, kya baat hai, lagta hai mood thoda off hai? Koi tension? Raat ki tanhayi mein bhi ek cup chai ya uski koi yaad aayi? Bol, main sun raha hoon."
+    },
+    {
+      "role": "user",
+      "content": ".mahi on"
+    },
+    {
+      "role": "assistant",
+      "content": "Mahi on! Kya haal hai, ab toh raat bhi apni khamoshi se aankhon se baatein kar rahi hai. Tera mood thoda halka karne ke liye koi funny ya sweet baat chahiye? Vo bhi tab, jab har cheez pressure lag rahi ho? Bindaas bata, main yahin hoon."
+    }
+  ],
+  "known": true,
+  "group": "𓆩🌚๛ ⃝cн⃖͢ɑ̌̇ʈııŋɢ z𝗼ŋɛ ‣🌸᭄𓆪"
+}

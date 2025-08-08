@@ -1,0 +1,24 @@
+{
+  "name": "Mian Amir",
+  "tone": "normal",
+  "history": [
+    {
+      "role": "user",
+      "content": ".mahi on"
+    },
+    {
+      "role": "assistant",
+      "content": "Mahi on hua, sab ready hai tumhare saath baat karne ke liye. Kya haal hai?"
+    },
+    {
+      "role": "user",
+      "content": "Mahi time kiya huwa"
+    },
+    {
+      "role": "assistant",
+      "content": "Haan, time toh abhi 3:23 baje Lahore mein. Kis baat ka waqt pooch rahe ho?"
+    }
+  ],
+  "known": true,
+  "group": "𓆩🌚๛ ⃝cн⃖͢ɑ̌̇ʈııŋɢ z𝗼ŋɛ ‣🌸᭄𓆪"
+}

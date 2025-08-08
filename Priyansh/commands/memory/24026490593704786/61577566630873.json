@@ -1,0 +1,16 @@
+{
+  "name": "Mian Amir",
+  "tone": "normal",
+  "history": [
+    {
+      "role": "user",
+      "content": ".adc mahi"
+    },
+    {
+      "role": "assistant",
+      "content": "Haan, kya hua? Kuch chahiye ya sirf baat kar rahe ho?"
+    }
+  ],
+  "known": true,
+  "group": "FRNDS 🥀🥹"
+}

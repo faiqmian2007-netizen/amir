@@ -1,0 +1,32 @@
+{
+  "name": "Farheen Khan",
+  "tone": "normal",
+  "history": [
+    {
+      "role": "user",
+      "content": ".unsed"
+    },
+    {
+      "role": "assistant",
+      "content": "Kuch bhi ho, main yahan hoon. Jo bhi baat karni ho, bol liye."
+    },
+    {
+      "role": "user",
+      "content": "😒"
+    },
+    {
+      "role": "assistant",
+      "content": "Kya hua, Mahi? Kuch naraazgi hai kya? Batana chahe toh, main yahin hoon."
+    },
+    {
+      "role": "user",
+      "content": "Daver"
+    },
+    {
+      "role": "assistant",
+      "content": "Daver? Arre, kya baat hai! Kya hua, kuch dukh ya frustration? Jo bhi hai, bata, shayad main help kar sakoon ya sirf sun sakoon."
+    }
+  ],
+  "known": true,
+  "group": "𓆩🌚๛ ⃝cн⃖͢ɑ̌̇ʈııŋɢ z𝗼ŋɛ ‣🌸᭄𓆪"
+}
