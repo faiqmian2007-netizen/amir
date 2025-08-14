@@ -1,0 +1,37 @@
+{
+  "resourceManagement": {
+    "maxBotsPerUser": 50,
+    "maxTotalBots": 200,
+    "maxMemoryPerBot": 512,
+    "maxStoragePerUser": 100,
+    "cleanupInterval": 300000,
+    "healthCheckInterval": 30000,
+    "autoRestartMaxAttempts": 3,
+    "memoryThreshold": 80
+  },
+  "storageOptimization": {
+    "useSymbolicLinks": true,
+    "cleanupInterval": 600000,
+    "maxFileAge": 86400000,
+    "enableGarbageCollection": true
+  },
+  "botRecovery": {
+    "autoRestart": true,
+    "restartDelay": 5000,
+    "exponentialBackoff": true,
+    "maxBackoffDelay": 30000,
+    "healthCheckEnabled": true
+  },
+  "monitoring": {
+    "enableResourceMonitoring": true,
+    "enablePerformanceTracking": true,
+    "logLevel": "info",
+    "metricsCollection": true
+  },
+  "security": {
+    "rateLimitEnabled": true,
+    "maxRequestsPerMinute": 100,
+    "sessionTimeout": 2592000000,
+    "enableAuditLog": true
+  }
+}
