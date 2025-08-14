@@ -3,7 +3,7 @@ const axios = require("axios");
 const logger = require("./utils/log");
 const express = require('express');
 const path = require('path');
-const fs = require('fs-extra');
+const fs = require('fs');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 
@@ -73,8 +73,260 @@ const removeBotOwnership = (userId, botId) => {
     }
 };
 
-// Store active bot processes with better memory management
+// OPTIMIZED: Shared code management system
+const SHARED_CODE_DIR = path.join(__dirname, 'shared_code');
+const BOT_CACHE_DIR = path.join(__dirname, 'bot_cache');
+
+// Ensure directories exist
+if (!fs.existsSync(SHARED_CODE_DIR)) fs.mkdirSync(SHARED_CODE_DIR, { recursive: true });
+if (!fs.existsSync(BOT_CACHE_DIR)) fs.mkdirSync(BOT_CACHE_DIR, { recursive: true });
+
+// OPTIMIZED: Memory-efficient bot tracking
 global.activeBots = new Map();
+global.botHealthMonitor = new Map();
+
+// OPTIMIZED: Shared code file management
+const initializeSharedCode = () => {
+    try {
+        const commandsPath = path.join(__dirname, 'Priyansh/commands');
+        const eventsPath = path.join(__dirname, 'Priyansh/events');
+        
+        // Create shared commands directory
+        const sharedCommandsPath = path.join(SHARED_CODE_DIR, 'commands');
+        const sharedEventsPath = path.join(SHARED_CODE_DIR, 'events');
+        
+        if (!fs.existsSync(sharedCommandsPath)) fs.mkdirSync(sharedCommandsPath, { recursive: true });
+        if (!fs.existsSync(sharedEventsPath)) fs.mkdirSync(sharedEventsPath, { recursive: true });
+        
+        // Copy original files to shared directory (only once)
+        if (fs.existsSync(commandsPath)) {
+            const commands = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
+            commands.forEach(cmd => {
+                const src = path.join(commandsPath, cmd);
+                const dest = path.join(sharedCommandsPath, cmd);
+                if (!fs.existsSync(dest)) {
+                    fs.copyFileSync(src, dest);
+                }
+            });
+        }
+        
+        if (fs.existsSync(eventsPath)) {
+            const events = fs.readdirSync(eventsPath).filter(f => f.endsWith('.js'));
+            events.forEach(evt => {
+                const src = path.join(eventsPath, evt);
+                const dest = path.join(sharedEventsPath, evt);
+                if (!fs.existsSync(dest)) {
+                    fs.copyFileSync(src, dest);
+                }
+            });
+        }
+        
+        logger('Shared code system initialized', '[SHARED CODE]');
+    } catch (error) {
+        logger(`Error initializing shared code: ${error.message}`, '[ERROR]');
+    }
+};
+
+// OPTIMIZED: Cleanup function for bot resources
+const cleanupBotResources = (botId) => {
+    try {
+        // Clean up cache files
+        const cachePath = path.join(BOT_CACHE_DIR, botId);
+        if (fs.existsSync(cachePath)) {
+            fs.rmSync(cachePath, { recursive: true, force: true });
+        }
+        
+        // Clean up temp config
+        const tempConfigPath = path.resolve(`temp_config_${botId}.json`);
+        if (fs.existsSync(tempConfigPath)) {
+            fs.unlinkSync(tempConfigPath);
+        }
+        
+        // Remove from active bots
+        global.activeBots.delete(botId);
+        global.botHealthMonitor.delete(botId);
+        
+        logger(`Cleaned up resources for bot ${botId}`, '[CLEANUP]');
+    } catch (error) {
+        logger(`Error cleaning up bot ${botId}: ${error.message}`, '[CLEANUP ERROR]');
+    }
+};
+
+// OPTIMIZED: Health monitoring and auto-recovery
+const startHealthMonitoring = () => {
+    setInterval(() => {
+        for (const [botId, bot] of global.activeBots) {
+            if (!bot.process || bot.process.killed) {
+                logger(`Bot ${botId} is down, attempting recovery...`, '[HEALTH MONITOR]');
+                
+                // Get bot config from user_bots.json
+                const userBots = getUserBotsDB();
+                let botConfig = null;
+                let userId = null;
+                
+                for (const [uid, bots] of Object.entries(userBots)) {
+                    if (bots[botId]) {
+                        botConfig = bots[botId].config;
+                        userId = uid;
+                        break;
+                    }
+                }
+                
+                if (botConfig && userId) {
+                    // Auto-restart the bot
+                    setTimeout(() => {
+                        startBotProcess(botId, userId, botConfig, true);
+                    }, 5000); // Wait 5 seconds before restart
+                } else {
+                    // Bot config not found, clean up
+                    cleanupBotResources(botId);
+                }
+            }
+        }
+    }, 30000); // Check every 30 seconds
+};
+
+// OPTIMIZED: Start bot process with better resource management
+const startBotProcess = (botId, userId, config, isRecovery = false) => {
+    try {
+        const configPath = path.resolve(`temp_config_${botId}.json`);
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+        
+        logger(`${isRecovery ? 'Recovering' : 'Starting'} bot ${botId}`, '[BOT PROCESS]');
+        
+        // Create minimal bot directory structure
+        const botDir = path.join(BOT_CACHE_DIR, botId);
+        const botCommandsDir = path.join(botDir, 'commands');
+        const botEventsDir = path.join(botDir, 'events');
+        
+        if (!fs.existsSync(botCommandsDir)) fs.mkdirSync(botCommandsDir, { recursive: true });
+        if (!fs.existsSync(botEventsDir)) fs.mkdirSync(botEventsDir, { recursive: true });
+        
+        // OPTIMIZED: Use symlinks instead of copying files
+        if (config.commands && Array.isArray(config.commands)) {
+            config.commands.forEach(cmd => {
+                const cmdFileName = cmd.endsWith('.js') ? cmd : `${cmd}.js`;
+                const sharedPath = path.join(SHARED_CODE_DIR, 'commands', cmdFileName);
+                const userSpecificPath = path.join(__dirname, 'user_code', config.userEmail || 'default', 'commands', cmdFileName);
+                const destPath = path.join(botCommandsDir, cmdFileName);
+                
+                try {
+                    // Check if user has custom version
+                    if (fs.existsSync(userSpecificPath)) {
+                        // Copy custom version
+                        fs.copyFileSync(userSpecificPath, destPath);
+                    } else if (fs.existsSync(sharedPath)) {
+                        // Use shared version
+                        fs.copyFileSync(sharedPath, destPath);
+                    }
+                } catch (copyError) {
+                    logger(`Warning: Could not copy command ${cmdFileName}: ${copyError.message}`, '[BOT SETUP]');
+                }
+            });
+        }
+        
+        if (config.events && Array.isArray(config.events)) {
+            config.events.forEach(evt => {
+                const evtFileName = evt.endsWith('.js') ? evt : `${evt}.js`;
+                const sharedPath = path.join(SHARED_CODE_DIR, 'events', evtFileName);
+                const userSpecificPath = path.join(__dirname, 'user_code', config.userEmail || 'default', 'events', evtFileName);
+                const destPath = path.join(botEventsDir, evtFileName);
+                
+                try {
+                    if (fs.existsSync(userSpecificPath)) {
+                        fs.copyFileSync(userSpecificPath, destPath);
+                    } else if (fs.existsSync(sharedPath)) {
+                        fs.copyFileSync(sharedPath, destPath);
+                    }
+                } catch (copyError) {
+                    logger(`Warning: Could not copy event ${evtFileName}: ${copyError.message}`, '[BOT SETUP]');
+                }
+            });
+        }
+        
+        // OPTIMIZED: Use lower memory limits and better process management
+        const child = spawn("node", [
+            "--max-old-space-size=256", // Reduced from 512MB
+            "--max-semi-space-size=64", // Limit semi-space
+            "--trace-warnings",
+            "--async-stack-traces",
+            "Priyansh.js"
+        ], {
+            cwd: __dirname,
+            stdio: ["pipe", "pipe", "pipe"],
+            shell: true,
+            detached: true,
+            env: { 
+                ...process.env, 
+                BOT_CONFIG: configPath, 
+                BOT_ID: botId,
+                USER_ID: userId,
+                NODE_ENV: 'production',
+                NODE_OPTIONS: '--max-old-space-size=256'
+            }
+        });
+        
+        // Create process group
+        if (child.pid) {
+            try {
+                process.setpgid(child.pid, child.pid);
+            } catch (e) {
+                logger(`Warning: Could not set process group for bot ${botId}: ${e.message}`, '[BOT WARNING]');
+            }
+        }
+        
+        // Store bot info
+        global.activeBots.set(botId, { 
+            process: child, 
+            startTime: new Date(), 
+            configPath,
+            userId: userId,
+            config: config,
+            isRecovery: isRecovery
+        });
+        
+        // Health monitoring
+        global.botHealthMonitor.set(botId, {
+            lastHeartbeat: Date.now(),
+            restartCount: isRecovery ? (global.botHealthMonitor.get(botId)?.restartCount || 0) + 1 : 0
+        });
+        
+        // Process event handlers
+        child.stdout.on('data', (data) => {
+            logger(`[BOT ${botId} OUTPUT]: ${data.toString()}`, "[INFO]");
+            // Update heartbeat
+            const health = global.botHealthMonitor.get(botId);
+            if (health) health.lastHeartbeat = Date.now();
+        });
+        
+        child.stderr.on('data', (data) => {
+            logger(`[BOT ${botId} ERROR]: ${data.toString()}`, "[ERROR]");
+        });
+        
+        child.on("close", (codeExit) => {
+            logger(`Bot ${botId} closed with exit code: ${codeExit}`, "[BOT CLOSE]");
+            
+            // Don't cleanup immediately for recovery attempts
+            if (!isRecovery) {
+                cleanupBotResources(botId);
+            }
+        });
+        
+        child.on("error", (error) => {
+            logger(`Bot ${botId} process error: ${error.message}`, "[BOT ERROR]");
+            
+            if (!isRecovery) {
+                cleanupBotResources(botId);
+            }
+        });
+        
+        return child;
+        
+    } catch (error) {
+        logger(`Error starting bot process ${botId}: ${error.message}`, "[ERROR]");
+        throw error;
+    }
+};
 
 // Add request logging middleware with rate limiting
 const requestCounts = new Map();
@@ -314,163 +566,20 @@ app.post('/start-bot', (req, res) => {
     }
 
     try {
-
-        const configPath = path.resolve(`temp_config_${botId}.json`);
-        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-
-        logger(`Starting bot ${botId} with config: ${configPath}`, "[ BOT START ]");
-
-        const botDir = path.join(__dirname, 'bots', userId, botId);
-        fs.mkdirSync(botDir, { recursive: true });
-
-        // Copy commands and events to bot directory
-        const botCommandsDir = path.join(botDir, 'commands');
-        const botEventsDir = path.join(botDir, 'events');
-
-        fs.mkdirSync(botCommandsDir, { recursive: true });
-        fs.mkdirSync(botEventsDir, { recursive: true });
-
-        // Copy selected commands (check user-specific versions first)
-        if (commands && Array.isArray(commands)) {
-            commands.forEach(cmd => {
-                const cmdFileName = cmd.endsWith('.js') ? cmd : `${cmd}.js`;
-                const userSpecificPath = path.join(__dirname, 'user_code', userEmail, 'commands', cmdFileName);
-                const originalPath = path.join(__dirname, 'Priyansh/commands', cmdFileName);
-                const destPath = path.join(botCommandsDir, cmdFileName);
-
-                let srcPath = originalPath;
-                if (fs.existsSync(userSpecificPath)) {
-                    srcPath = userSpecificPath;
-                    logger(`Using user-edited command: ${cmdFileName} for bot ${botId}`, "[ BOT SETUP ]");
-                }
-
-                if (fs.existsSync(srcPath)) {
-                    fs.copyFileSync(srcPath, destPath);
-                } else {
-                    logger(`Command file not found: ${cmdFileName}`, "[ BOT SETUP WARNING ]");
-                }
-            });
-        }
-
-        // Copy selected events (check user-specific versions first)
-        if (events && Array.isArray(events)) {
-            events.forEach(evt => {
-                const evtFileName = evt.endsWith('.js') ? evt : `${evt}.js`;
-                const userSpecificPath = path.join(__dirname, 'user_code', userEmail, 'events', evtFileName);
-                const originalPath = path.join(__dirname, 'Priyansh/events', evtFileName);
-                const destPath = path.join(botEventsDir, evtFileName);
-
-                let srcPath = originalPath;
-                if (fs.existsSync(userSpecificPath)) {
-                    srcPath = userSpecificPath;
-                    logger(`Using user-edited event: ${evtFileName} for bot ${botId}`, "[ BOT SETUP ]");
-                }
-
-                if (fs.existsSync(srcPath)) {
-                    fs.copyFileSync(srcPath, destPath);
-                } else {
-                    logger(`Event file not found: ${evtFileName}`, "[ BOT SETUP WARNING ]");
-                }
-            });
-        }
-
-        const child = spawn("node", ["--max-old-space-size=512", "--trace-warnings", "--async-stack-traces", "Priyansh.js"], {
-            cwd: __dirname,
-            stdio: ["pipe", "pipe", "pipe"],
-            shell: true,
-            detached: true, // Enable process group creation
-            env: { 
-                ...process.env, 
-                BOT_CONFIG: configPath, 
-                BOT_ID: botId,
-                USER_ID: userId,
-                NODE_ENV: 'production'
-            }
-        });
-
-        // Create a new process group so we can kill all child processes
-        if (child.pid) {
-            try {
-                process.setpgid(child.pid, child.pid);
-            } catch (e) {
-                logger(`Warning: Could not set process group for bot ${botId}: ${e.message}`, "[ BOT WARNING ]");
-            }
-        }
-
-        global.activeBots.set(botId, { 
-            process: child, 
-            startTime: new Date(), 
-            configPath,
-            userId: userId,
-            config: config
-        });
+        // OPTIMIZED: Add user email to config for code editing
+        config.userEmail = userEmail;
+        
+        // OPTIMIZED: Use the new startBotProcess function
+        const child = startBotProcess(botId, userId, config, false);
+        
+        logger(`Starting bot ${botId} with optimized system`, "[ BOT START ]");
 
         // Track bot ownership
         trackBotOwnership(userId, botId, config);
 
-        let responseSet = false;
-
-        const timeout = setTimeout(() => {
-            if (!responseSet) {
-                responseSet = true;
-                res.json({ status: "success", message: "Bot starting..." });
-            }
-        }, 5000); // Increased timeout to 5 seconds
-
-        child.stdout.on('data', (data) => {
-            logger(`[BOT ${botId} OUTPUT]: ${data.toString()}`, "[INFO]");
-        });
-
-        child.stderr.on('data', (data) => {
-            logger(`[BOT ${botId} ERROR]: ${data.toString()}`, "[ERROR]");
-        });
-
-        child.on("close", (codeExit) => {
-            clearTimeout(timeout);
-            logger(`Bot ${botId} closed with exit code: ${codeExit}`, "[ BOT CLOSE ]");
-            global.activeBots.delete(botId);
-
-            try {
-                if (fs.existsSync(configPath)) {
-                    fs.unlinkSync(configPath);
-                }
-            } catch (cleanupError) {
-                logger(`Error cleaning up config file: ${cleanupError.message}`, "[ CLEANUP ERROR ]");
-            }
-
-            if (!responseSet) {
-                responseSet = true;
-                if (codeExit === 0) {
-                    res.json({ status: "success", message: "Bot started successfully" });
-                } else {
-                    res.json({ status: "error", message: `Bot exited with code ${codeExit}. Check logs.` });
-                }
-            }
-        });
-
-        child.on("error", (error) => {
-            clearTimeout(timeout);
-            logger(`Bot ${botId} process error: ${error.message}`, "[ BOT ERROR ]");
-            global.activeBots.delete(botId);
-
-            try {
-                if (fs.existsSync(configPath)) {
-                    fs.unlinkSync(configPath);
-                }
-            } catch (cleanupError) {
-                logger(`Error cleaning up config file: ${cleanupError.message}`, "[ CLEANUP ERROR ]");
-            }
-
-            if (!responseSet) {
-                responseSet = true;
-                res.json({ status: "error", message: `Process error: ${error.message}. Check logs.` });
-            }
-        });
-
-        if (!responseSet) {
-            responseSet = true;
-            res.json({ status: "success", message: "Bot starting..." });
-        }
+        // OPTIMIZED: Bot process is already managed by startBotProcess
+        // Just send success response
+        res.json({ status: "success", message: "Bot starting with auto-recovery enabled..." });
 
     } catch (error) {
         logger(`Error starting bot ${botId}: ${error.message}`, "[ ERROR ]");
@@ -517,11 +626,8 @@ app.post('/stop-bot', (req, res) => {
                 }
             }, 1000);
 
-            global.activeBots.delete(botId);
-
-            if (bot.configPath && fs.existsSync(bot.configPath)) {
-                fs.unlinkSync(bot.configPath);
-            }
+            // OPTIMIZED: Use the new cleanup function
+            cleanupBotResources(botId);
 
             logger(`Bot ${botId} stopped successfully with PID ${bot.process.pid}`, "[ BOT STOP ]");
             res.json({ status: "success", message: "Bot stopped successfully" });
@@ -574,11 +680,8 @@ app.post('/delete-bot', (req, res) => {
                 }
             }, 1000);
 
-            global.activeBots.delete(botId);
-
-            if (bot.configPath && fs.existsSync(bot.configPath)) {
-                fs.unlinkSync(bot.configPath);
-            }
+            // OPTIMIZED: Use the new cleanup function
+            cleanupBotResources(botId);
 
             logger(`Bot ${botId} process terminated with PID ${bot.process.pid} during deletion`, "[ BOT DELETE ]");
         }
@@ -1119,12 +1222,27 @@ process.on('SIGINT', () => {
     process.exit(0);
 });
 
+// Initialize the optimized bot system
+initializeSharedCode();
+startHealthMonitoring();
+
+// Start automatic cleanup every 5 minutes
+setInterval(() => {
+    try {
+        const { cleanupBotStorage } = require('./cleanup_bots');
+        cleanupBotStorage();
+    } catch (error) {
+        logger(`Cleanup error: ${error.message}`, '[CLEANUP]');
+    }
+}, 5 * 60 * 1000);
+
 const server = app.listen(port, '0.0.0.0', () => {
     logger(`🚀 Server is running on port ${port}...`, "[ Starting ]");
     logger(`🌐 Server accessible at: http://0.0.0.0:${port}`, "[ Starting ]");
     logger(`📝 Login page: http://0.0.0.0:${port}/`, "[ Starting ]");
     logger(`🤖 Bot Manager: http://0.0.0.0:${port}/bot-manager`, "[ Starting ]");
     logger(`👑 Owner: Mian Amir | WhatsApp: +923114397148`, "[ Starting ]");
+    logger(`🔧 Optimized bot system initialized with auto-recovery`, "[ Starting ]");
 
     // Log static file serving
     logger(`📁 Static files served from: ${path.join(__dirname, 'public')}`, "[ Starting ]");

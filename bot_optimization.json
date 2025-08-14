@@ -1,0 +1,24 @@
+{
+  "memory": {
+    "maxOldSpaceSize": 256,
+    "maxSemiSpaceSize": 64,
+    "gcInterval": 30000
+  },
+  "storage": {
+    "sharedCodeEnabled": true,
+    "cacheCleanupInterval": 300000,
+    "maxCacheSize": 100,
+    "tempFileCleanup": true
+  },
+  "recovery": {
+    "autoRestart": true,
+    "restartDelay": 5000,
+    "maxRestartAttempts": 5,
+    "healthCheckInterval": 30000
+  },
+  "performance": {
+    "maxConcurrentBots": 100,
+    "processTimeout": 300000,
+    "memoryThreshold": 0.8
+  }
+}
