@@ -6,10 +6,365 @@ const path = require('path');
 const fs = require('fs-extra');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
+const os = require('os');
 
 const app = express();
 const port = process.env.PORT || 21030; // Use hosting port or default to 5000
 
+// ==================== RESOURCE MANAGEMENT SYSTEM ====================
+class ResourceManager {
+    constructor() {
+        this.maxBotsPerUser = 50; // Maximum bots per user
+        this.maxTotalBots = 200; // Maximum total bots across all users
+        this.maxMemoryPerBot = 512; // MB per bot
+        this.maxStoragePerUser = 100; // MB per user
+        this.cleanupInterval = 5 * 60 * 1000; // 5 minutes
+        this.healthCheckInterval = 30 * 1000; // 30 seconds
+        
+        this.startResourceMonitoring();
+    }
+
+    // Monitor system resources
+    startResourceMonitoring() {
+        setInterval(() => {
+            this.checkSystemHealth();
+        }, this.healthCheckInterval);
+
+        setInterval(() => {
+            this.cleanupResources();
+        }, this.cleanupInterval);
+    }
+
+    // Check system health and restart failed bots
+    async checkSystemHealth() {
+        const totalMemory = os.totalmem();
+        const freeMemory = os.freemem();
+        const memoryUsage = ((totalMemory - freeMemory) / totalMemory) * 100;
+
+        // If memory usage is high, restart some bots
+        if (memoryUsage > 80) {
+            logger(`High memory usage detected: ${memoryUsage.toFixed(2)}%`, "[ RESOURCE WARNING ]");
+            this.optimizeMemoryUsage();
+        }
+
+        // Check bot health and restart failed ones
+        for (const [botId, bot] of global.activeBots) {
+            if (bot.process && bot.process.killed) {
+                logger(`Bot ${botId} process is dead, attempting restart`, "[ HEALTH CHECK ]");
+                await this.autoRestartBot(botId, bot);
+            }
+        }
+    }
+
+    // Optimize memory usage by restarting some bots
+    optimizeMemoryUsage() {
+        const bots = Array.from(global.activeBots.entries());
+        if (bots.length > 10) {
+            // Restart oldest bots to free memory
+            const oldestBots = bots
+                .sort((a, b) => a[1].startTime - b[1].startTime)
+                .slice(0, Math.floor(bots.length * 0.2)); // Restart 20% oldest bots
+
+            oldestBots.forEach(([botId, bot]) => {
+                logger(`Restarting bot ${botId} for memory optimization`, "[ MEMORY OPTIMIZATION ]");
+                this.autoRestartBot(botId, bot);
+            });
+        }
+    }
+
+    // Auto-restart bot on failure
+    async autoRestartBot(botId, bot) {
+        try {
+            if (bot.restartAttempts >= 3) {
+                logger(`Bot ${botId} failed too many times, stopping auto-restart`, "[ AUTO-RESTART LIMIT ]");
+                global.activeBots.delete(botId);
+                return;
+            }
+
+            bot.restartAttempts = (bot.restartAttempts || 0) + 1;
+            logger(`Auto-restarting bot ${botId} (attempt ${bot.restartAttempts})`, "[ AUTO-RESTART ]");
+
+            // Wait before restart (exponential backoff)
+            const delay = Math.min(1000 * Math.pow(2, bot.restartAttempts - 1), 30000);
+            setTimeout(async () => {
+                await this.restartBotProcess(botId, bot);
+            }, delay);
+
+        } catch (error) {
+            logger(`Error in auto-restart for bot ${botId}: ${error.message}`, "[ AUTO-RESTART ERROR ]");
+        }
+    }
+
+    // Restart bot process
+    async restartBotProcess(botId, bot) {
+        try {
+            const newChild = spawn("node", ["--max-old-space-size=512", "--trace-warnings", "--async-stack-traces", "Priyansh.js"], {
+                cwd: __dirname,
+                stdio: ["pipe", "pipe", "pipe"],
+                shell: true,
+                detached: true,
+                env: { 
+                    ...process.env, 
+                    BOT_CONFIG: bot.configPath, 
+                    BOT_ID: botId,
+                    USER_ID: bot.userId,
+                    NODE_ENV: 'production'
+                }
+            });
+
+            if (newChild.pid) {
+                try {
+                    process.setpgid(newChild.pid, newChild.pid);
+                } catch (e) {
+                    logger(`Warning: Could not set process group for restarted bot ${botId}: ${e.message}`, "[ BOT WARNING ]");
+                }
+            }
+
+            // Update bot process
+            bot.process = newChild;
+            bot.startTime = new Date();
+            bot.lastRestart = new Date();
+
+            // Set up event handlers
+            newChild.stdout.on('data', (data) => {
+                logger(`[BOT ${botId} OUTPUT]: ${data.toString()}`, "[INFO]");
+            });
+
+            newChild.stderr.on('data', (data) => {
+                logger(`[BOT ${botId} ERROR]: ${data.toString()}`, "[ERROR]");
+            });
+
+            newChild.on("close", (codeExit) => {
+                logger(`Restarted Bot ${botId} closed with exit code: ${codeExit}`, "[ BOT CLOSE ]");
+                if (codeExit !== 0) {
+                    // If bot still fails, try to restart again
+                    setTimeout(() => {
+                        this.autoRestartBot(botId, bot);
+                    }, 5000);
+                }
+            });
+
+            newChild.on("error", (error) => {
+                logger(`Restarted Bot ${botId} process error: ${error.message}`, "[ BOT ERROR ]");
+                setTimeout(() => {
+                    this.autoRestartBot(botId, bot);
+                }, 5000);
+            });
+
+            logger(`Bot ${botId} restarted successfully with new PID ${newChild.pid}`, "[ AUTO-RESTART SUCCESS ]");
+
+        } catch (error) {
+            logger(`Error restarting bot process ${botId}: ${error.message}`, "[ RESTART ERROR ]");
+        }
+    }
+
+    // Clean up resources
+    cleanupResources() {
+        try {
+            // Clean up temporary config files
+            const tempFiles = fs.readdirSync(__dirname).filter(file => 
+                file.startsWith('temp_config_') && file.endsWith('.json')
+            );
+
+            tempFiles.forEach(file => {
+                const botId = file.replace('temp_config_', '').replace('.json', '');
+                if (!global.activeBots.has(botId)) {
+                    try {
+                        fs.unlinkSync(path.join(__dirname, file));
+                        logger(`Cleaned up orphaned config file: ${file}`, "[ CLEANUP ]");
+                    } catch (e) {
+                        // File might be in use
+                    }
+                }
+            });
+
+            // Clean up empty bot directories
+            const botsDir = path.join(__dirname, 'bots');
+            if (fs.existsSync(botsDir)) {
+                const userDirs = fs.readdirSync(botsDir);
+                userDirs.forEach(userDir => {
+                    const userPath = path.join(botsDir, userDir);
+                    const botDirs = fs.readdirSync(userPath);
+                    
+                    botDirs.forEach(botDir => {
+                        const botPath = path.join(userPath, botDir);
+                        const botId = botDir;
+                        
+                        if (!global.activeBots.has(botId)) {
+                            try {
+                                fs.removeSync(botPath);
+                                logger(`Cleaned up inactive bot directory: ${botPath}`, "[ CLEANUP ]");
+                            } catch (e) {
+                                // Directory might be in use
+                            }
+                        }
+                    });
+                });
+            }
+
+            // Force garbage collection if available
+            if (global.gc) {
+                global.gc();
+            }
+
+        } catch (error) {
+            logger(`Error during resource cleanup: ${error.message}`, "[ CLEANUP ERROR ]");
+        }
+    }
+
+    // Check if user can create more bots
+    canCreateBot(userId) {
+        const userBots = getUserBotsDB();
+        const userBotCount = Object.keys(userBots[userId] || {}).length;
+        const totalBots = global.activeBots.size;
+
+        if (userBotCount >= this.maxBotsPerUser) {
+            return { allowed: false, reason: `Maximum bots per user (${this.maxBotsPerUser}) reached` };
+        }
+
+        if (totalBots >= this.maxTotalBots) {
+            return { allowed: false, reason: `Maximum total bots (${this.maxTotalBots}) reached` };
+        }
+
+        return { allowed: true };
+    }
+
+    // Get system resource usage
+    getResourceUsage() {
+        const totalMemory = os.totalmem();
+        const freeMemory = os.freemem();
+        const usedMemory = totalMemory - freeMemory;
+        const memoryUsage = (usedMemory / totalMemory) * 100;
+
+        return {
+            memory: {
+                total: Math.round(totalMemory / 1024 / 1024),
+                used: Math.round(usedMemory / 1024 / 1024),
+                free: Math.round(freeMemory / 1024 / 1024),
+                usage: Math.round(memoryUsage)
+            },
+            bots: {
+                active: global.activeBots.size,
+                max: this.maxTotalBots
+            },
+            uptime: process.uptime()
+        };
+    }
+}
+
+// Initialize resource manager
+const resourceManager = new ResourceManager();
+
+// ==================== STORAGE OPTIMIZATION SYSTEM ====================
+class StorageOptimizer {
+    constructor() {
+        this.symbolicLinks = new Map();
+        this.fileHashes = new Map();
+        this.cleanupInterval = 10 * 60 * 1000; // 10 minutes
+        this.startCleanup();
+    }
+
+    // Create symbolic link instead of copying file
+    createSymbolicLink(sourcePath, destPath) {
+        try {
+            if (fs.existsSync(destPath)) {
+                fs.unlinkSync(destPath);
+            }
+            
+            // Create symbolic link to save space
+            fs.symlinkSync(sourcePath, destPath);
+            this.symbolicLinks.set(destPath, sourcePath);
+            
+            return true;
+        } catch (error) {
+            logger(`Error creating symbolic link: ${error.message}`, "[ STORAGE ERROR ]");
+            // Fallback to copying
+            try {
+                fs.copyFileSync(sourcePath, destPath);
+                return false;
+            } catch (copyError) {
+                logger(`Error copying file: ${copyError.message}`, "[ STORAGE ERROR ]");
+                return false;
+            }
+        }
+    }
+
+    // Optimize bot setup by using symbolic links
+    optimizeBotSetup(botDir, commands, events, userEmail) {
+        const botCommandsDir = path.join(botDir, 'commands');
+        const botEventsDir = path.join(botDir, 'events');
+
+        fs.mkdirSync(botCommandsDir, { recursive: true });
+        fs.mkdirSync(botEventsDir, { recursive: true });
+
+        // Optimize commands
+        if (commands && Array.isArray(commands)) {
+            commands.forEach(cmd => {
+                const cmdFileName = cmd.endsWith('.js') ? cmd : `${cmd}.js`;
+                const userSpecificPath = path.join(__dirname, 'user_code', userEmail, 'commands', cmdFileName);
+                const originalPath = path.join(__dirname, 'Priyansh/commands', cmdFileName);
+                const destPath = path.join(botCommandsDir, cmdFileName);
+
+                let srcPath = originalPath;
+                if (fs.existsSync(userSpecificPath)) {
+                    srcPath = userSpecificPath;
+                }
+
+                if (fs.existsSync(srcPath)) {
+                    this.createSymbolicLink(srcPath, destPath);
+                }
+            });
+        }
+
+        // Optimize events
+        if (events && Array.isArray(events)) {
+            events.forEach(evt => {
+                const evtFileName = evt.endsWith('.js') ? evt : `${evt}.js`;
+                const userSpecificPath = path.join(__dirname, 'user_code', userEmail, 'events', evtFileName);
+                const originalPath = path.join(__dirname, 'Priyansh/events', evtFileName);
+                const destPath = path.join(botEventsDir, evtFileName);
+
+                let srcPath = originalPath;
+                if (fs.existsSync(userSpecificPath)) {
+                    srcPath = userSpecificPath;
+                }
+
+                if (fs.existsSync(srcPath)) {
+                    this.createSymbolicLink(srcPath, destPath);
+                }
+            });
+        }
+    }
+
+    // Clean up symbolic links
+    cleanupSymbolicLinks() {
+        for (const [destPath, sourcePath] of this.symbolicLinks) {
+            try {
+                if (fs.existsSync(destPath)) {
+                    const stats = fs.lstatSync(destPath);
+                    if (stats.isSymbolicLink()) {
+                        fs.unlinkSync(destPath);
+                        this.symbolicLinks.delete(destPath);
+                    }
+                }
+            } catch (error) {
+                // Link might be broken or in use
+            }
+        }
+    }
+
+    // Start cleanup process
+    startCleanup() {
+        setInterval(() => {
+            this.cleanupSymbolicLinks();
+        }, this.cleanupInterval);
+    }
+}
+
+// Initialize storage optimizer
+const storageOptimizer = new StorageOptimizer();
+
+// ==================== ESSENTIAL MIDDLEWARE & CONFIGURATION ====================
 // Increase payload limits for better scalability
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -73,6 +428,7 @@ const removeBotOwnership = (userId, botId) => {
     }
 };
 
+// ==================== ENHANCED BOT MANAGEMENT ====================
 // Store active bot processes with better memory management
 global.activeBots = new Map();
 
@@ -279,6 +635,12 @@ app.post('/start-bot', (req, res) => {
         return res.json({ status: "error", message: "Bot ID is required" });
     }
 
+    // Check resource limits before starting bot
+    const resourceCheck = resourceManager.canCreateBot(userId);
+    if (!resourceCheck.allowed) {
+        return res.json({ status: "error", message: resourceCheck.reason });
+    }
+
     // Check if bot ID already exists for any user
     const userBots = getUserBotsDB();
     for (const [ownerId, bots] of Object.entries(userBots)) {
@@ -323,56 +685,8 @@ app.post('/start-bot', (req, res) => {
         const botDir = path.join(__dirname, 'bots', userId, botId);
         fs.mkdirSync(botDir, { recursive: true });
 
-        // Copy commands and events to bot directory
-        const botCommandsDir = path.join(botDir, 'commands');
-        const botEventsDir = path.join(botDir, 'events');
-
-        fs.mkdirSync(botCommandsDir, { recursive: true });
-        fs.mkdirSync(botEventsDir, { recursive: true });
-
-        // Copy selected commands (check user-specific versions first)
-        if (commands && Array.isArray(commands)) {
-            commands.forEach(cmd => {
-                const cmdFileName = cmd.endsWith('.js') ? cmd : `${cmd}.js`;
-                const userSpecificPath = path.join(__dirname, 'user_code', userEmail, 'commands', cmdFileName);
-                const originalPath = path.join(__dirname, 'Priyansh/commands', cmdFileName);
-                const destPath = path.join(botCommandsDir, cmdFileName);
-
-                let srcPath = originalPath;
-                if (fs.existsSync(userSpecificPath)) {
-                    srcPath = userSpecificPath;
-                    logger(`Using user-edited command: ${cmdFileName} for bot ${botId}`, "[ BOT SETUP ]");
-                }
-
-                if (fs.existsSync(srcPath)) {
-                    fs.copyFileSync(srcPath, destPath);
-                } else {
-                    logger(`Command file not found: ${cmdFileName}`, "[ BOT SETUP WARNING ]");
-                }
-            });
-        }
-
-        // Copy selected events (check user-specific versions first)
-        if (events && Array.isArray(events)) {
-            events.forEach(evt => {
-                const evtFileName = evt.endsWith('.js') ? evt : `${evt}.js`;
-                const userSpecificPath = path.join(__dirname, 'user_code', userEmail, 'events', evtFileName);
-                const originalPath = path.join(__dirname, 'Priyansh/events', evtFileName);
-                const destPath = path.join(botEventsDir, evtFileName);
-
-                let srcPath = originalPath;
-                if (fs.existsSync(userSpecificPath)) {
-                    srcPath = userSpecificPath;
-                    logger(`Using user-edited event: ${evtFileName} for bot ${botId}`, "[ BOT SETUP ]");
-                }
-
-                if (fs.existsSync(srcPath)) {
-                    fs.copyFileSync(srcPath, destPath);
-                } else {
-                    logger(`Event file not found: ${evtFileName}`, "[ BOT SETUP WARNING ]");
-                }
-            });
-        }
+        // Use storage optimization for bot setup
+        storageOptimizer.optimizeBotSetup(botDir, commands, events, userEmail);
 
         const child = spawn("node", ["--max-old-space-size=512", "--trace-warnings", "--async-stack-traces", "Priyansh.js"], {
             cwd: __dirname,
@@ -438,12 +752,19 @@ app.post('/start-bot', (req, res) => {
                 logger(`Error cleaning up config file: ${cleanupError.message}`, "[ CLEANUP ERROR ]");
             }
 
+            // Trigger auto-restart for non-zero exit codes
+            if (codeExit !== 0) {
+                setTimeout(() => {
+                    resourceManager.autoRestartBot(botId, { userId, config });
+                }, 5000);
+            }
+
             if (!responseSet) {
                 responseSet = true;
                 if (codeExit === 0) {
                     res.json({ status: "success", message: "Bot started successfully" });
                 } else {
-                    res.json({ status: "error", message: `Bot exited with code ${codeExit}. Check logs.` });
+                    res.json({ status: "error", message: `Bot exited with code ${codeExit}. Auto-restart initiated.` });
                 }
             }
         });
@@ -461,9 +782,14 @@ app.post('/start-bot', (req, res) => {
                 logger(`Error cleaning up config file: ${cleanupError.message}`, "[ CLEANUP ERROR ]");
             }
 
+            // Trigger auto-restart for this bot
+            setTimeout(() => {
+                resourceManager.autoRestartBot(botId, { userId, config });
+            }, 5000);
+
             if (!responseSet) {
                 responseSet = true;
-                res.json({ status: "error", message: `Process error: ${error.message}. Check logs.` });
+                res.json({ status: "error", message: `Process error: ${error.message}. Auto-restart initiated.` });
             }
         });
 
@@ -636,84 +962,18 @@ app.post('/restart-bot', (req, res) => {
 
         logger(`Bot ${botId} stopped for restart`, "[ BOT RESTART ]");
 
-        // Wait a moment before restarting
-        setTimeout(() => {
+        // Use resource manager for restart
+        setTimeout(async () => {
             try {
-                // Create new config file
-                const newConfigPath = path.resolve(`temp_config_${botId}.json`);
-                fs.writeFileSync(newConfigPath, JSON.stringify(savedConfig, null, 2));
-
-                // Spawn new process
-                const newChild = spawn("node", ["--max-old-space-size=512", "--trace-warnings", "--async-stack-traces", "Priyansh.js"], {
-                    cwd: __dirname,
-                    stdio: ["pipe", "pipe", "pipe"],
-                    shell: true,
-                    detached: true,
-                    env: { 
-                        ...process.env, 
-                        BOT_CONFIG: newConfigPath, 
-                        BOT_ID: botId,
-                        NODE_ENV: 'production'
-                    }
+                await resourceManager.restartBotProcess(botId, {
+                    ...bot,
+                    config: savedConfig,
+                    userId: userId
                 });
-
-                // Create process group
-                if (newChild.pid) {
-                    try {
-                        process.setpgid(newChild.pid, newChild.pid);
-                    } catch (e) {
-                        logger(`Warning: Could not set process group for restarted bot ${botId}: ${e.message}`, "[ BOT WARNING ]");
-                    }
-                }
-
-                global.activeBots.set(botId, { 
-                    process: newChild, 
-                    startTime: new Date(), 
-                    configPath: newConfigPath,
-                    userId: userId,
-                    config: savedConfig
-                });
-
-                newChild.stdout.on('data', (data) => {
-                    logger(`[BOT ${botId} OUTPUT]: ${data.toString()}`, "[INFO]");
-                });
-
-                newChild.stderr.on('data', (data) => {
-                    logger(`[BOT ${botId} ERROR]: ${data.toString()}`, "[ERROR]");
-                });
-
-                newChild.on("close", (codeExit) => {
-                    logger(`Restarted Bot ${botId} closed with exit code: ${codeExit}`, "[ BOT CLOSE ]");
-                    global.activeBots.delete(botId);
-
-                    try {
-                        if (fs.existsSync(newConfigPath)) {
-                            fs.unlinkSync(newConfigPath);
-                        }
-                    } catch (cleanupError) {
-                        logger(`Error cleaning up config file: ${cleanupError.message}`, "[ CLEANUP ERROR ]");
-                    }
-                });
-
-                newChild.on("error", (error) => {
-                    logger(`Restarted Bot ${botId} process error: ${error.message}`, "[ BOT ERROR ]");
-                    global.activeBots.delete(botId);
-
-                    try {
-                        if (fs.existsSync(newConfigPath)) {
-                            fs.unlinkSync(newConfigPath);
-                        }
-                    } catch (cleanupError) {
-                        logger(`Error cleaning up config file: ${cleanupError.message}`, "[ CLEANUP ERROR ]");
-                    }
-                });
-
-                logger(`Bot ${botId} restarted successfully with new PID ${newChild.pid}`, "[ BOT RESTART ]");
-
             } catch (restartError) {
-                logger(`Error restarting bot ${botId}: ${restartError.message}`, "[ ERROR ]");
+                logger(`Error restarting bot ${botId}: ${restartError.message}`, "[ RESTART ERROR ]");
             }
-        }, 2000); // Wait 2 seconds before restarting
+        }, 2000);
 
         res.json({ status: "success", message: "Bot is being restarted..." });
 
@@ -722,6 +982,78 @@ app.post('/restart-bot', (req, res) => {
         res.json({ status: "error", message: `Error restarting bot: ${error.message}` });
     }
 });
+
+// New endpoint for bulk bot operations
+app.post('/bulk-bot-operation', (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ status: "error", message: "Authentication required" });
+    }
+
+    const { operation, botIds } = req.body;
+    const userId = req.session.userId;
+
+    if (!operation || !botIds || !Array.isArray(botIds)) {
+        return res.json({ status: "error", message: "Invalid operation or bot IDs" });
+    }
+
+    const userBots = getUserBotsDB();
+    const userOwnedBots = userBots[userId] || {};
+    const results = [];
+
+    botIds.forEach(botId => {
+        if (!userOwnedBots[botId]) {
+            results.push({ botId, status: "error", message: "Bot not found or no permission" });
+            return;
+        }
+
+        try {
+            switch (operation) {
+                case 'start':
+                    // This would need to be implemented based on your start logic
+                    results.push({ botId, status: "info", message: "Start operation not implemented in bulk" });
+                    break;
+                case 'stop':
+                    const bot = global.activeBots.get(botId);
+                    if (bot && bot.process) {
+                        try {
+                            if (bot.process.pid) {
+                                process.kill(-bot.process.pid, 'SIGKILL');
+                            }
+                            global.activeBots.delete(botId);
+                            results.push({ botId, status: "success", message: "Bot stopped" });
+                        } catch (e) {
+                            results.push({ botId, status: "error", message: e.message });
+                        }
+                    } else {
+                        results.push({ botId, status: "info", message: "Bot not running" });
+                    }
+                    break;
+                case 'restart':
+                    // Use resource manager for restart
+                    const restartBot = global.activeBots.get(botId);
+                    if (restartBot && restartBot.process) {
+                        resourceManager.autoRestartBot(botId, restartBot);
+                        results.push({ botId, status: "success", message: "Bot restart initiated" });
+                    } else {
+                        results.push({ botId, status: "info", message: "Bot not running, cannot restart" });
+                    }
+                    break;
+                default:
+                    results.push({ botId, status: "error", message: "Unknown operation" });
+            }
+        } catch (error) {
+            results.push({ botId, status: "error", message: error.message });
+        }
+    });
+
+    res.json({
+        status: "success",
+        operation: operation,
+        results: results
+    });
+});
+
+
 
 app.get('/api/available-items', (req, res) => {
     try {
@@ -775,6 +1107,8 @@ app.get('/admin/all-bots', (req, res) => {
             pid: bot.process ? bot.process.pid : null,
             startTime: bot.startTime,
             userId: bot.userId,
+            restartAttempts: bot.restartAttempts || 0,
+            lastRestart: bot.lastRestart,
             config: {
                 prefix: bot.config?.PREFIX,
                 adminUid: bot.config?.ADMINBOT,
@@ -784,7 +1118,95 @@ app.get('/admin/all-bots', (req, res) => {
         };
     }
 
-    res.json({ totalBots: global.activeBots.size, bots: status });
+    res.json({ 
+        totalBots: global.activeBots.size, 
+        bots: status,
+        resources: resourceManager.getResourceUsage()
+    });
+});
+
+// New endpoint for system resource monitoring
+app.get('/admin/system-status', (req, res) => {
+    const resourceUsage = resourceManager.getResourceUsage();
+    const storageInfo = {
+        symbolicLinks: storageOptimizer.symbolicLinks.size,
+        activeBots: global.activeBots.size,
+        maxBots: resourceManager.maxTotalBots
+    };
+
+    res.json({
+        status: 'success',
+        resources: resourceUsage,
+        storage: storageInfo,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// New endpoint for force cleanup
+app.post('/admin/force-cleanup', (req, res) => {
+    try {
+        resourceManager.cleanupResources();
+        storageOptimizer.cleanupSymbolicLinks();
+        
+        res.json({
+            status: 'success',
+            message: 'Forced cleanup completed',
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        logger(`Error in force cleanup: ${error.message}`, "[ ADMIN CLEANUP ERROR ]");
+        res.json({
+            status: 'error',
+            message: error.message
+        });
+    }
+});
+
+// New endpoint for system performance monitoring
+app.get('/admin/performance', (req, res) => {
+    try {
+        const resourceUsage = resourceManager.getResourceUsage();
+        const processInfo = {
+            uptime: process.uptime(),
+            memoryUsage: process.memoryUsage(),
+            cpuUsage: process.cpuUsage(),
+            pid: process.pid,
+            version: process.version,
+            platform: process.platform,
+            arch: process.arch
+        };
+
+        // Get disk usage information
+        const diskUsage = {
+            total: 0,
+            used: 0,
+            free: 0
+        };
+
+        try {
+            const stats = fs.statSync(__dirname);
+            // This is a simplified disk usage calculation
+            diskUsage.total = stats.size || 0;
+        } catch (e) {
+            // Disk stats might not be available
+        }
+
+        res.json({
+            status: 'success',
+            system: {
+                resources: resourceUsage,
+                process: processInfo,
+                disk: diskUsage
+            },
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        logger(`Error getting performance data: ${error.message}`, "[ PERFORMANCE ERROR ]");
+        res.json({
+            status: 'error',
+            message: error.message
+        });
+    }
 });
 
 app.get('/admin/download-appstate/:botId', (req, res) => {
@@ -889,10 +1311,161 @@ app.get('/api/bot-details/:botId', (req, res) => {
         pid: isRunning ? activeBotInfo.process.pid : null,
         startTime: isRunning ? activeBotInfo.startTime : null,
         totalCommands: botData.config.commands ? botData.config.commands.length : 0,
-        totalEvents: botData.config.events ? botData.config.events.length : 0
+        totalEvents: botData.config.events ? botData.config.events.length : 0,
+        restartAttempts: activeBotInfo ? (activeBotInfo.restartAttempts || 0) : 0,
+        lastRestart: activeBotInfo ? activeBotInfo.lastRestart : null
     };
 
     res.json({ status: "success", bot: details });
+});
+
+// New endpoint for user resource usage
+app.get('/api/user-resources', (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ status: "error", message: "Authentication required" });
+    }
+
+    const userId = req.session.userId;
+    const userBots = getUserBotsDB();
+    const userOwnedBots = userBots[userId] || {};
+    const activeBots = Object.keys(userOwnedBots).filter(botId => 
+        global.activeBots.has(botId)
+    );
+
+    const resourceInfo = {
+        totalBots: Object.keys(userOwnedBots).length,
+        activeBots: activeBots.length,
+        maxBotsPerUser: resourceManager.maxBotsPerUser,
+        maxStoragePerUser: resourceManager.maxStoragePerUser,
+        canCreateMore: resourceManager.canCreateBot(userId).allowed
+    };
+
+    res.json({
+        status: "success",
+        resources: resourceInfo
+    });
+});
+
+// New endpoint for monitoring all user bots with health status
+app.get('/api/user-bots-health', (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ status: "error", message: "Authentication required" });
+    }
+
+    const userId = req.session.userId;
+    const userBots = getUserBotsDB();
+    const userOwnedBots = userBots[userId] || {};
+
+    const healthStatus = {};
+    let healthyBots = 0;
+    let unhealthyBots = 0;
+
+    for (const [botId, botData] of Object.entries(userOwnedBots)) {
+        const activeBotInfo = global.activeBots.get(botId);
+        const isRunning = activeBotInfo && activeBotInfo.process && !activeBotInfo.process.killed;
+        
+        if (isRunning) {
+            const uptime = activeBotInfo.startTime ? Math.floor((new Date() - activeBotInfo.startTime) / 1000) : 0;
+            const restartAttempts = activeBotInfo.restartAttempts || 0;
+            
+            healthStatus[botId] = {
+                status: 'healthy',
+                running: true,
+                uptime: `${uptime}s`,
+                restartAttempts: restartAttempts,
+                lastRestart: activeBotInfo.lastRestart,
+                pid: activeBotInfo.process.pid,
+                startTime: activeBotInfo.startTime
+            };
+            
+            if (restartAttempts > 0) {
+                healthStatus[botId].status = 'recovered';
+                healthStatus[botId].healthNote = `Bot recovered after ${restartAttempts} restart attempts`;
+            }
+            
+            healthyBots++;
+        } else {
+            healthStatus[botId] = {
+                status: 'stopped',
+                running: false,
+                uptime: '0s',
+                restartAttempts: 0,
+                lastActive: botData.lastActive,
+                healthNote: 'Bot is currently stopped'
+            };
+            unhealthyBots++;
+        }
+    }
+
+    res.json({
+        status: "success",
+        summary: {
+            totalBots: Object.keys(userOwnedBots).length,
+            healthyBots: healthyBots,
+            unhealthyBots: unhealthyBots,
+            healthPercentage: Object.keys(userOwnedBots).length > 0 ? 
+                Math.round((healthyBots / Object.keys(userOwnedBots).length) * 100) : 0
+        },
+        bots: healthStatus
+    });
+});
+
+// New endpoint for automatic bot recovery
+app.post('/api/auto-recover-bots', (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ status: "error", message: "Authentication required" });
+    }
+
+    const userId = req.session.userId;
+    const userBots = getUserBotsDB();
+    const userOwnedBots = userBots[userId] || {};
+
+    const recoveryResults = [];
+    let recoveredCount = 0;
+
+    for (const [botId, botData] of Object.entries(userOwnedBots)) {
+        const activeBotInfo = global.activeBots.get(botId);
+        const isRunning = activeBotInfo && activeBotInfo.process && !activeBotInfo.process.killed;
+        
+        if (!isRunning) {
+            try {
+                // Attempt to restart stopped bot
+                resourceManager.autoRestartBot(botId, { 
+                    userId, 
+                    config: botData.config,
+                    restartAttempts: 0
+                });
+                
+                recoveryResults.push({
+                    botId,
+                    status: 'recovery_initiated',
+                    message: 'Bot recovery process started'
+                });
+                recoveredCount++;
+                
+            } catch (error) {
+                recoveryResults.push({
+                    botId,
+                    status: 'recovery_failed',
+                    message: error.message
+                });
+            }
+        } else {
+            recoveryResults.push({
+                botId,
+                status: 'already_running',
+                message: 'Bot is already running'
+            });
+        }
+    }
+
+    res.json({
+        status: "success",
+        message: `Recovery initiated for ${recoveredCount} bots`,
+        totalBots: Object.keys(userOwnedBots).length,
+        recoveredCount: recoveredCount,
+        results: recoveryResults
+    });
 });
 
 // Code Editor Routes

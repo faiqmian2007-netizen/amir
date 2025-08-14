@@ -9,8 +9,10 @@
   },
   "scripts": {
     "start": "npm install --legacy-peer-deps && node index.js",
+    "start:enhanced": "node start_enhanced.js",
     "login": "node login",
-    "test": "node --trace-warnings --use_strict --async-stack-traces mirai"
+    "test": "node --trace-warnings --use_strict --async-stack-traces mirai",
+    "monitor": "node -e \"console.log('System monitoring endpoints:'); console.log('GET /admin/system-status'); console.log('GET /admin/performance'); console.log('GET /api/user-bots-health');\""
   },
   "repository": {
     "type": "git",
