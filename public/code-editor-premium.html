@@ -1,0 +1,520 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Premium Code Editor Access</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 90%;
+            background: rgba(26, 26, 46, 0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 212, 255, 0.3);
+            border: 2px solid #00d4ff;
+            overflow: hidden;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            padding: 30px;
+            text-align: center;
+            color: #0f0f23;
+        }
+
+        .premium-icon {
+            font-size: 4rem;
+            margin-bottom: 10px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .feature-list {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .feature-list h3 {
+            color: #00d4ff;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .feature-list ul {
+            list-style: none;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            color: #e0e0e0;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .feature-list li:before {
+            content: "✨";
+            position: absolute;
+            left: 0;
+            color: #00d4ff;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .access-key-display {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #00d4ff;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
+            animation: fadeInUp 0.5s ease;
+            display: none;
+        }
+
+        .access-key-display h3 {
+            color: #00d4ff;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+
+        .access-key {
+            background: #0f0f23;
+            color: #ffd700;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            word-break: break-all;
+            border: 2px solid #00d4ff;
+        }
+
+        .whatsapp-info {
+            text-align: center;
+            background: rgba(37, 211, 102, 0.1);
+            border: 1px solid rgba(37, 211, 102, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .whatsapp-info p {
+            margin: 5px 0;
+            color: #e0e0e0;
+        }
+
+        .whatsapp-number {
+            color: #25d366;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #0f0f23;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-whatsapp {
+            background: linear-gradient(135deg, #25d366, #128c7e);
+            color: white;
+        }
+
+        .btn-whatsapp:hover {
+            box-shadow: 0 10px 20px rgba(37, 211, 102, 0.4);
+        }
+
+        .back-btn {
+            display: inline-block;
+            color: #00d4ff;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 10px 20px;
+            border: 2px solid #00d4ff;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-align: center;
+            width: 100%;
+        }
+
+        .back-btn:hover {
+            background: #00d4ff;
+            color: #0f0f23;
+            transform: translateY(-2px);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: 500;
+            display: none;
+        }
+
+        .alert-success {
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid #28a745;
+            color: #28a745;
+        }
+
+        .alert-error {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid #dc3545;
+            color: #dc3545;
+        }
+
+        .alert-info {
+            background: rgba(0, 212, 255, 0.2);
+            border: 1px solid #00d4ff;
+            color: #00d4ff;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #0f0f23;
+            border-top: 2px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-display {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                margin: 10px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .premium-icon {
+                font-size: 3rem;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="premium-icon">👑</div>
+            <h1>Premium Code Editor</h1>
+            <p class="subtitle">Unlock advanced code editing features</p>
+        </div>
+
+        <div class="content">
+            <div class="feature-list">
+                <h3>🚀 Premium Features</h3>
+                <ul>
+                    <li>Edit bot commands and events</li>
+                    <li>Real-time code syntax highlighting</li>
+                    <li>Save custom code modifications</li>
+                    <li>Reset to original files</li>
+                    <li>Professional code editor interface</li>
+                    <li>Priority support for code issues</li>
+                </ul>
+            </div>
+
+            <div id="alertContainer"></div>
+
+            <div id="statusDisplay" class="status-display">
+                <p id="statusMessage">Checking your premium status...</p>
+            </div>
+
+            <div id="accessKeyDisplay" class="access-key-display">
+                <h3>🔑 Your Access Key</h3>
+                <div class="access-key" id="accessKeyText">Generating...</div>
+                <div class="whatsapp-info">
+                    <p><strong>📞 Contact Admin:</strong></p>
+                    <p>Send this key to WhatsApp: <span class="whatsapp-number">+923114397148</span></p>
+                    <p>The admin will approve your access within 24 hours.</p>
+                </div>
+            </div>
+
+            <button id="generateKeyBtn" class="btn" onclick="generateAccessKey()">
+                📱 Generate Access Key & Open WhatsApp
+            </button>
+
+            <button id="checkStatusBtn" class="btn" onclick="checkStatus()">
+                🔍 Check Status
+            </button>
+
+            <button id="whatsappBtn" class="btn btn-whatsapp" onclick="contactWhatsApp()" style="display: none;">
+                📱 Contact Admin on WhatsApp
+            </button>
+
+            <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
+        </div>
+    </div>
+
+    <script>
+        let userEmail = '';
+        let currentAccessKey = '';
+        const WHATSAPP_NUMBER = '+923114397148';
+
+        // Load user info and check status on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadUserInfo();
+            await checkStatus();
+        });
+
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/user-info');
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                const result = await response.json();
+                if (result.status === 'success') {
+                    userEmail = result.user.email;
+                }
+            } catch (error) {
+                console.error('Error loading user info:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        async function generateAccessKey() {
+            const btn = document.getElementById('generateKeyBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loading"></div>Generating...';
+
+            try {
+                const response = await fetch('/api/request-premium-access', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'success' || result.status === 'info') {
+                    currentAccessKey = result.accessKey;
+                    
+                    if (result.accessKey === 'APPROVED') {
+                        showAlert(result.message, 'success');
+                        setTimeout(() => {
+                            window.location.href = '/code-editor';
+                        }, 2000);
+                    } else {
+                        displayAccessKey(result.accessKey);
+                        showAlert('Access key generated! Opening WhatsApp...', 'success');
+                        
+                        // Automatically redirect to WhatsApp immediately
+                        setTimeout(() => {
+                            contactWhatsAppWithKey(result.accessKey);
+                        }, 500);
+                    }
+                } else {
+                    showAlert(result.message, 'error');
+                }
+            } catch (error) {
+                showAlert('Error generating access key: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/premium-status');
+                const result = await response.json();
+                
+                if (result.status === 'approved') {
+                    showAlert('You have premium access! Redirecting to code editor...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/code-editor';
+                    }, 2000);
+                } else if (result.status === 'pending') {
+                    currentAccessKey = result.accessKey;
+                    displayAccessKey(result.accessKey);
+                    showAlert('Your access key is pending approval. Contact admin if needed.', 'info');
+                    showWhatsAppButton();
+                } else {
+                    showAlert('No premium access found. Generate an access key to get started.', 'info');
+                }
+            } catch (error) {
+                showAlert('Error checking status: ' + error.message, 'error');
+            }
+        }
+
+        function displayAccessKey(key) {
+            const display = document.getElementById('accessKeyDisplay');
+            const keyText = document.getElementById('accessKeyText');
+            keyText.textContent = key;
+            display.style.display = 'block';
+            showWhatsAppButton();
+        }
+
+        function showWhatsAppButton() {
+            const whatsappBtn = document.getElementById('whatsappBtn');
+            whatsappBtn.style.display = 'block';
+        }
+
+        function contactWhatsAppWithKey(key) {
+            const message = `Hello Amir! I need premium access for the Code Editor.
+
+My Details:
+📧 Email: ${userEmail}
+🔑 Access Key: ${key}
+
+Please approve my premium access. Thank you!`;
+
+            const whatsappUrl = `https://wa.me/923114397148?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        function contactWhatsApp() {
+            if (currentAccessKey) {
+                contactWhatsAppWithKey(currentAccessKey);
+            } else {
+                const message = `Hello Amir! I need premium access for the Code Editor.
+
+My Details:
+📧 Email: ${userEmail}
+
+Please help me get premium access. Thank you!`;
+
+                const whatsappUrl = `https://wa.me/923114397148?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertDiv.style.display = 'block';
+
+            alertContainer.innerHTML = '';
+            alertContainer.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Auto-check status every 30 seconds
+        setInterval(checkStatus, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,971 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 Bot Code Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f23;
+            color: #e0e0e0;
+            height: 100vh;
+            height: calc(var(--vh, 1vh) * 100);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 15px 25px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .developer-info {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .back-btn {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            border: 1px solid #00d4ff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+            height: calc(calc(var(--vh, 1vh) * 100) - 80px);
+        }
+
+        .sidebar {
+            width: 320px;
+            background: #1a1a2e;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .editor-area {
+            flex: 1;
+            background: #0f0f23;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-header {
+            background: #252545;
+            padding: 12px 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-bottom: 1px solid #333;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .file-item {
+            background: #1e1e3f;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-item:hover {
+            background: #2a2a4a;
+            border-color: #00d4ff;
+            transform: translateX(5px);
+        }
+
+        .file-item.active {
+            background: #00d4ff;
+            color: #0f0f23;
+            border-color: #00d4ff;
+        }
+
+        .file-icon {
+            font-size: 1.2rem;
+        }
+
+        .file-name {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            color: #666;
+        }
+
+        .welcome-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .editor-container {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .editor-container.active {
+            display: flex;
+        }
+
+        .editor-header {
+            background: #1a1a2e;
+            padding: 15px 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-title {
+            font-weight: 600;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .editor-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .code-editor {
+            flex: 1;
+            border: none;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 20px;
+            background: #0f0f23;
+            color: #e0e0e0;
+            resize: none;
+            outline: none;
+            touch-action: manipulation;
+            -webkit-touch-callout: default;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        .status-bar {
+            background: #1a1a2e;
+            padding: 8px 20px;
+            border-top: 1px solid #333;
+            font-size: 0.8rem;
+            color: #888;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            z-index: 2000;
+            min-width: 300px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .alert.show {
+            transform: translateX(0);
+        }
+
+        .alert-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .alert-error {
+            background: #dc3545;
+            color: white;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #333;
+            border-top: 2px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.4rem;
+            }
+
+            .developer-info {
+                font-size: 0.7rem;
+            }
+
+            .main-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 30vh;
+                border-right: none;
+                border-bottom: 1px solid #333;
+            }
+
+            .editor-area {
+                height: 70vh;
+                position: relative;
+            }
+
+            .editor-container {
+                height: 100%;
+            }
+
+            .code-editor {
+                font-size: 16px;
+                padding: 15px;
+                min-height: 300px;
+                position: relative;
+                z-index: 1;
+                touch-action: manipulation;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+
+            .mobile-editor-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.9);
+                z-index: 9998;
+            }
+
+            .mobile-editor-container {
+                display: none;
+                position: fixed;
+                top: 50px;
+                left: 10px;
+                right: 10px;
+                bottom: 50px;
+                background: #0f0f23;
+                border: 2px solid #00d4ff;
+                border-radius: 12px;
+                z-index: 9999;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .mobile-editor-header {
+                background: #1a1a2e;
+                padding: 15px;
+                border-bottom: 1px solid #333;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-shrink: 0;
+            }
+
+            .mobile-editor-title {
+                color: #00d4ff;
+                font-weight: 600;
+                font-size: 14px;
+            }
+
+            .mobile-close-btn {
+                background: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 12px;
+                font-size: 12px;
+                cursor: pointer;
+                font-weight: 500;
+            }
+
+            .mobile-code-editor {
+                flex: 1;
+                border: none;
+                font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Courier New', monospace;
+                font-size: 14px;
+                line-height: 1.5;
+                padding: 20px;
+                background: #0f0f23;
+                color: #e0e0e0;
+                resize: none;
+                outline: none;
+                touch-action: manipulation;
+                -webkit-touch-callout: default;
+                -webkit-user-select: text;
+                user-select: text;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+
+            .mobile-editor-actions {
+                background: #1a1a2e;
+                padding: 10px 15px;
+                border-top: 1px solid #333;
+                display: flex;
+                gap: 10px;
+                flex-shrink: 0;
+            }
+
+            .mobile-btn {
+                padding: 8px 12px;
+                border: none;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 500;
+                cursor: pointer;
+                flex: 1;
+                text-align: center;
+            }
+
+            .mobile-btn-success {
+                background: #28a745;
+                color: white;
+            }
+
+            .mobile-btn-warning {
+                background: #ffc107;
+                color: #212529;
+            }
+
+            .btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+
+            .alert {
+                min-width: calc(100vw - 40px);
+                right: 20px;
+                left: 20px;
+            }
+
+            /* Adjust file list for better mobile experience */
+            .file-list {
+                max-height: calc(30vh - 80px);
+                overflow-y: auto;
+            }
+
+            .file-item {
+                padding: 10px 12px;
+                margin-bottom: 6px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 10px 15px;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.2rem;
+            }
+
+            .back-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+
+            .sidebar {
+                height: 35vh;
+            }
+
+            .editor-area {
+                height: 65vh;
+            }
+
+            .editor-controls {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            .btn {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #00d4ff;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0099cc;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>🤖 Bot Code Editor</h1>
+            <div class="developer-info">
+                👨‍💻 Made by: Mian Amir | 📱 WhatsApp: +923114397148
+            </div>
+        </div>
+        <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <!-- Commands Section -->
+            <div class="section-header">
+                🎯 Commands
+            </div>
+            <div class="file-list" id="commandsList">
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <div class="loading"></div>
+                    Loading commands...
+                </div>
+            </div>
+
+            <!-- Events Section -->
+            <div class="section-header">
+                🎪 Events
+            </div>
+            <div class="file-list" id="eventsList">
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <div class="loading"></div>
+                    Loading events...
+                </div>
+            </div>
+        </div>
+
+        <div class="editor-area">
+            <!-- Welcome Screen -->
+            <div id="welcomeScreen" class="welcome-screen">
+                <div class="welcome-icon">📝</div>
+                <h2>Select a file to edit</h2>
+                <p>Choose a command or event file from the sidebar to start editing</p>
+            </div>
+
+            <!-- Editor Container -->
+            <div id="editorContainer" class="editor-container">
+                <div class="editor-header">
+                    <div class="file-title">
+                        <span class="file-icon">📄</span>
+                        <span id="currentFileName">No file selected</span>
+                    </div>
+                    <div class="editor-controls">
+                        <button class="btn btn-success" onclick="saveCurrentFile()">
+                            💾 Save
+                        </button>
+                        <button class="btn btn-warning" onclick="resetCurrentFile()">
+                            🔄 Reset
+                        </button>
+                        <button class="btn btn-secondary" onclick="closeEditor()">
+                            ✕ Close
+                        </button>
+                    </div>
+                </div>
+                <textarea id="codeEditor" class="code-editor" placeholder="File content will appear here..."></textarea>
+                <div class="status-bar">
+                    <span id="fileInfo">No file selected</span>
+                    <span id="editorStatus">Ready</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Editor Overlay -->
+    <div id="mobileEditorOverlay" class="mobile-editor-overlay" onclick="closeMobileEditor()"></div>
+    
+    <div id="mobileEditorContainer" class="mobile-editor-container">
+        <div class="mobile-editor-header">
+            <div class="mobile-editor-title" id="mobileFileName">No file selected</div>
+            <button class="mobile-close-btn" onclick="closeMobileEditor()">Close</button>
+        </div>
+        <textarea id="mobileCodeEditor" class="mobile-code-editor" placeholder="File content will appear here..."></textarea>
+        <div class="mobile-editor-actions">
+            <button class="mobile-btn mobile-btn-success" onclick="saveMobileFile()">💾 Save</button>
+            <button class="mobile-btn mobile-btn-warning" onclick="resetMobileFile()">🔄 Reset</button>
+        </div>
+    </div>
+
+    <div id="alertContainer"></div>
+
+    <script>
+        let currentFile = { type: null, name: null };
+        let originalContent = '';
+        let isModified = false;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadFiles();
+            setupEditor();
+        });
+
+        function setupEditor() {
+            const editor = document.getElementById('codeEditor');
+            editor.addEventListener('input', () => {
+                isModified = editor.value !== originalContent;
+                updateStatus();
+            });
+        }
+
+        function updateStatus() {
+            const status = document.getElementById('editorStatus');
+            if (currentFile.name) {
+                status.textContent = isModified ? 'Modified' : 'Saved';
+                status.style.color = isModified ? '#ffc107' : '#28a745';
+            } else {
+                status.textContent = 'Ready';
+                status.style.color = '#888';
+            }
+        }
+
+        async function loadFiles() {
+            try {
+                const response = await fetch('/api/code-files');
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    displayFiles('commands', result.commands);
+                    displayFiles('events', result.events);
+                } else {
+                    showAlert('❌ ' + result.message, 'error');
+                }
+            } catch (error) {
+                showAlert('❌ Error loading files: ' + error.message, 'error');
+            }
+        }
+
+        function displayFiles(type, files) {
+            const container = document.getElementById(type + 'List');
+            
+            if (files.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">No files found</div>';
+                return;
+            }
+
+            const filesHTML = files.map(file => `
+                <div class="file-item" onclick="loadFile('${type.slice(0, -1)}', '${file}', this)">
+                    <span class="file-icon">📄</span>
+                    <span class="file-name">${file}</span>
+                </div>
+            `).join('');
+
+            container.innerHTML = filesHTML;
+        }
+
+        async function loadFile(type, fileName, clickedElement = null) {
+            // Check if file is already open
+            if (currentFile.name === fileName && currentFile.type === type) {
+                return;
+            }
+
+            // Check for unsaved changes
+            if (isModified) {
+                if (!confirm('You have unsaved changes. Do you want to continue without saving?')) {
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch(`/api/code-file/${type}/${fileName}`);
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    // Update current file info
+                    currentFile = { type, name: fileName };
+                    originalContent = result.content;
+                    isModified = false;
+
+                    // Update UI
+                    document.getElementById('currentFileName').textContent = fileName;
+                    document.getElementById('codeEditor').value = result.content;
+                    document.getElementById('fileInfo').textContent = `${type}/${fileName} • ${result.content.split('\n').length} lines`;
+                    
+                    // Show editor, hide welcome
+                    document.getElementById('welcomeScreen').style.display = 'none';
+                    document.getElementById('editorContainer').classList.add('active');
+
+                    // Update active file in sidebar
+                    document.querySelectorAll('.file-item').forEach(item => item.classList.remove('active'));
+                    if (clickedElement) {
+                        clickedElement.classList.add('active');
+                    }
+
+                    updateStatus();
+                } else {
+                    showAlert('❌ ' + result.message, 'error');
+                }
+            } catch (error) {
+                showAlert('❌ Error loading file: ' + error.message, 'error');
+            }
+        }
+
+        async function saveCurrentFile() {
+            if (!currentFile.name) {
+                showAlert('❌ No file selected', 'error');
+                return;
+            }
+
+            const code = document.getElementById('codeEditor').value;
+            
+            try {
+                const response = await fetch('/api/save-code-file', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: currentFile.type,
+                        fileName: currentFile.name,
+                        content: code
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    originalContent = code;
+                    isModified = false;
+                    updateStatus();
+                    showAlert('✅ File saved successfully', 'success');
+                } else {
+                    showAlert('❌ ' + result.message, 'error');
+                }
+            } catch (error) {
+                showAlert('❌ Error saving file: ' + error.message, 'error');
+            }
+        }
+
+        async function resetCurrentFile() {
+            if (!currentFile.name) {
+                showAlert('❌ No file selected', 'error');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to reset this file to its original version? All changes will be lost.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/reset-code-file', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: currentFile.type,
+                        fileName: currentFile.name
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    document.getElementById('codeEditor').value = result.content;
+                    originalContent = result.content;
+                    isModified = false;
+                    updateStatus();
+                    showAlert('✅ File reset to original version', 'success');
+                } else {
+                    showAlert('❌ ' + result.message, 'error');
+                }
+            } catch (error) {
+                showAlert('❌ Error resetting file: ' + error.message, 'error');
+            }
+        }
+
+        function closeEditor() {
+            if (isModified) {
+                if (!confirm('You have unsaved changes. Are you sure you want to close without saving?')) {
+                    return;
+                }
+            }
+
+            document.getElementById('editorContainer').classList.remove('active');
+            document.getElementById('welcomeScreen').style.display = 'flex';
+            document.querySelectorAll('.file-item').forEach(item => item.classList.remove('active'));
+            
+            currentFile = { type: null, name: null };
+            originalContent = '';
+            isModified = false;
+            updateStatus();
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.innerHTML = message;
+            
+            document.getElementById('alertContainer').appendChild(alertDiv);
+
+            // Trigger animation
+            setTimeout(() => alertDiv.classList.add('show'), 100);
+
+            // Remove after 5 seconds
+            setTimeout(() => {
+                alertDiv.classList.remove('show');
+                setTimeout(() => alertDiv.remove(), 300);
+            }, 5000);
+        }
+
+        // Mobile editor handling
+        let isMobileEditorOpen = false;
+
+        function openMobileEditor() {
+            if (window.innerWidth <= 768 && currentFile.name) {
+                isMobileEditorOpen = true;
+                const overlay = document.getElementById('mobileEditorOverlay');
+                const container = document.getElementById('mobileEditorContainer');
+                const mobileEditor = document.getElementById('mobileCodeEditor');
+                const desktopEditor = document.getElementById('codeEditor');
+                const fileName = document.getElementById('mobileFileName');
+                
+                // Show mobile editor
+                overlay.style.display = 'block';
+                container.style.display = 'flex';
+                
+                // Sync content and title
+                mobileEditor.value = desktopEditor.value;
+                fileName.textContent = currentFile.name;
+                
+                // Focus on mobile editor
+                setTimeout(() => {
+                    mobileEditor.focus();
+                    mobileEditor.setSelectionRange(0, 0);
+                }, 100);
+                
+                // Sync changes between editors
+                mobileEditor.addEventListener('input', syncToDesktop);
+            }
+        }
+
+        function closeMobileEditor() {
+            if (isMobileEditorOpen) {
+                const overlay = document.getElementById('mobileEditorOverlay');
+                const container = document.getElementById('mobileEditorContainer');
+                const mobileEditor = document.getElementById('mobileCodeEditor');
+                
+                // Hide mobile editor
+                overlay.style.display = 'none';
+                container.style.display = 'none';
+                
+                // Remove event listener
+                mobileEditor.removeEventListener('input', syncToDesktop);
+                
+                isMobileEditorOpen = false;
+            }
+        }
+
+        function syncToDesktop() {
+            const mobileEditor = document.getElementById('mobileCodeEditor');
+            const desktopEditor = document.getElementById('codeEditor');
+            desktopEditor.value = mobileEditor.value;
+            
+            // Update modification status
+            isModified = desktopEditor.value !== originalContent;
+            updateStatus();
+        }
+
+        function saveMobileFile() {
+            syncToDesktop();
+            saveCurrentFile();
+        }
+
+        function resetMobileFile() {
+            if (confirm('Are you sure you want to reset this file? All changes will be lost.')) {
+                resetCurrentFile().then(() => {
+                    if (isMobileEditorOpen) {
+                        const mobileEditor = document.getElementById('mobileCodeEditor');
+                        const desktopEditor = document.getElementById('codeEditor');
+                        mobileEditor.value = desktopEditor.value;
+                    }
+                });
+            }
+        }
+
+        // Handle mobile click on code editor
+        document.getElementById('codeEditor').addEventListener('click', function(e) {
+            if (window.innerWidth <= 768 && currentFile.name) {
+                e.preventDefault();
+                openMobileEditor();
+            }
+        });
+
+        // Handle mobile viewport changes
+        function handleViewportChange() {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+            
+            // Close mobile editor if screen becomes larger
+            if (window.innerWidth > 768 && isMobileEditorOpen) {
+                closeMobileEditor();
+            }
+        }
+
+        window.addEventListener('resize', handleViewportChange);
+        window.addEventListener('orientationchange', handleViewportChange);
+        handleViewportChange();
+
+        // Prevent zoom on mobile
+        document.addEventListener('touchstart', function(e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 's':
+                        e.preventDefault();
+                        if (isMobileEditorOpen) {
+                            saveMobileFile();
+                        } else {
+                            saveCurrentFile();
+                        }
+                        break;
+                    case 'w':
+                        e.preventDefault();
+                        if (isMobileEditorOpen) {
+                            closeMobileEditor();
+                        } else {
+                            closeEditor();
+                        }
+                        break;
+                }
+            }
+            
+            // ESC key to close mobile editor
+            if (e.key === 'Escape' && isMobileEditorOpen) {
+                closeMobileEditor();
+            }
+        });
+    </script>
+</body>
+</html>

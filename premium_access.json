@@ -1,0 +1,38 @@
+{
+  "approved_keys": {
+    "KEY-ABC123DEF456": {
+      "userEmail": "muhammadrayan172@gmail.com",
+      "approvedBy": "admin",
+      "approvedAt": "2024-01-01T00:00:00.000Z"
+    },
+    "KEY-XYZ789GHI012": {
+      "userEmail": "mahiamir452@gmail.com",
+      "approvedBy": "admin",
+      "approvedAt": "2024-01-02T00:00:00.000Z"
+    },
+    "KEY-JKL345MNO678": {
+      "userEmail": "user3@example.com",
+      "approvedBy": "admin",
+      "approvedAt": "2024-01-03T00:00:00.000Z"
+    },
+    "KEY-PQR901STU234": {
+      "userEmail": "user4@example.com",
+      "approvedBy": "admin",
+      "approvedAt": "2024-01-04T00:00:00.000Z"
+    }
+  },
+  "pending_keys": {
+    "KEY-387BEAA75B1A": {
+      "userEmail": "mahiamir452@gmail.com",
+      "userId": "1753832737066",
+      "requestTime": "2025-08-09T15:08:13.618Z",
+      "status": "pending"
+    },
+    "KEY-E662134D47B5": {
+      "userEmail": "alijyaar@gil.com",
+      "userId": "1754855618482",
+      "requestTime": "2025-08-10T19:53:55.844Z",
+      "status": "pending"
+    }
+  }
+}
