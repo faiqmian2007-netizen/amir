@@ -1,2 +1,0 @@
-# amir
-web auto bot
