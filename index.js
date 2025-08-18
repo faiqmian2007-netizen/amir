@@ -312,7 +312,7 @@ app.get('/bot-manager', (req, res) => {
     if (!req.session.userId) {
         return res.redirect('/login');
     }
-    res.sendFile(path.join(__dirname, 'public', 'index.html'), (err) => {
+    res.sendFile(path.join(__dirname, 'public', 'bot-manager.html'), (err) => {
         if (err) {
             logger(`Error serving bot manager: ${err.message}`, "[ERROR]");
             res.status(500).send('Unable to load the bot manager. Check server logs.');
@@ -582,6 +582,33 @@ app.post('/start-bot', (req, res) => {
         return res.json({ status: "error", message: "Bot ID is required" });
     }
 
+    // Check if user has enough coins to run the bot
+    try {
+        const users = getUsersDB();
+        const user = users.find(u => u.id === userId);
+        
+        if (!user) {
+            return res.status(404).json({ status: "error", message: "User not found" });
+        }
+
+        if (!user.coins || user.coins <= 0) {
+            return res.json({ 
+                status: "error", 
+                message: "You need coins to run bots. Collect coins from the dashboard first!" 
+            });
+        }
+
+        // Deduct 1 coin for starting the bot
+        user.coins = user.coins - 1;
+        saveUsersDB(users);
+        
+        logger(`User ${userId} started bot ${botId}. Coins remaining: ${user.coins}`, "[ BOT START ]");
+        
+    } catch (error) {
+        logger(`Error checking user coins: ${error.message}`, "[ERROR]");
+        return res.status(500).json({ status: "error", message: "Error checking user coins" });
+    }
+
     // Check if bot ID already exists for any user
     const userBots = getUserBotsDB();
     for (const [ownerId, bots] of Object.entries(userBots)) {
@@ -705,8 +732,39 @@ app.post('/start-bot', (req, res) => {
             startTime: new Date(),
             configPath,
             userId: userId,
-            config: config
+            config: config,
+            coinTimer: null
         });
+
+        // Set up coin-based timer (24 hours = 24 * 60 * 60 * 1000 milliseconds)
+        const coinTimer = setTimeout(() => {
+            logger(`Bot ${botId} stopped due to coin expiration (24 hours)`, "[ BOT COIN TIMER ]");
+            
+            // Stop the bot process
+            if (global.activeBots.has(botId)) {
+                const bot = global.activeBots.get(botId);
+                if (bot.process && !bot.process.killed) {
+                    try {
+                        process.kill(-bot.process.pid, 'SIGKILL');
+                    } catch (killError) {
+                        bot.process.kill('SIGKILL');
+                    }
+                }
+                global.activeBots.delete(botId);
+            }
+            
+            // Clean up config file
+            try {
+                if (fs.existsSync(configPath)) {
+                    fs.unlinkSync(configPath);
+                }
+            } catch (cleanupError) {
+                logger(`Error cleaning up config file: ${cleanupError.message}`, "[ CLEANUP ERROR ]");
+            }
+        }, 24 * 60 * 60 * 1000); // 24 hours
+
+        // Store the timer reference
+        global.activeBots.get(botId).coinTimer = coinTimer;
 
         // Track bot ownership and enable auto-restart
         trackBotOwnership(userId, botId, config);
@@ -1712,6 +1770,192 @@ app.post('/api/reset-code-file', (req, res) => {
         res.json({ status: 'error', message: error.message });
     }
 });
+
+// Coin system API endpoints
+app.post('/api/collect-coin', (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ status: "error", message: "Authentication required" });
+    }
+
+    try {
+        const users = getUsersDB();
+        const user = users.find(u => u.id === req.session.userId);
+        
+        if (!user) {
+            return res.status(404).json({ status: "error", message: "User not found" });
+        }
+
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+
+        // Check if daily reset is needed
+        if (user.lastDailyReset !== today) {
+            user.dailyCoinsCollected = 0;
+            user.lastDailyReset = today;
+        }
+
+        // Check if user can collect more coins today
+        if (user.dailyCoinsCollected >= 10) {
+            return res.json({ 
+                status: "error", 
+                message: "Daily coin limit reached (10 coins). Come back tomorrow!" 
+            });
+        }
+
+        // Check if enough time has passed since last collection (minimum 1 second)
+        if (user.lastCoinCollection) {
+            const timeSinceLastCollection = now - new Date(user.lastCoinCollection);
+            if (timeSinceLastCollection < 1000) { // 1 second minimum
+                return res.json({ 
+                    status: "error", 
+                    message: "Please wait a moment before collecting another coin" 
+                });
+            }
+        }
+
+        // Add coin
+        user.coins = (user.coins || 0) + 1;
+        user.dailyCoinsCollected = (user.dailyCoinsCollected || 0) + 1;
+        user.lastCoinCollection = now.toISOString();
+
+        saveUsersDB(users);
+
+        res.json({ 
+            status: "success", 
+            message: "Coin collected successfully!", 
+            coins: user.coins,
+            dailyCoinsCollected: user.dailyCoinsCollected,
+            dailyLimit: 10
+        });
+
+    } catch (error) {
+        logger(`Error collecting coin: ${error.message}`, "[ERROR]");
+        res.status(500).json({ status: "error", message: "Error collecting coin" });
+    }
+});
+
+app.get('/api/user-coins', (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ status: "error", message: "Authentication required" });
+    }
+
+    try {
+        const users = getUsersDB();
+        const user = users.find(u => u.id === req.session.userId);
+        
+        if (!user) {
+            return res.status(404).json({ status: "error", message: "User not found" });
+        }
+
+        res.json({ 
+            status: "success", 
+            coins: user.coins || 0,
+            dailyCoinsCollected: user.dailyCoinsCollected || 0,
+            dailyLimit: 10
+        });
+
+    } catch (error) {
+        logger(`Error getting user coins: ${error.message}`, "[ERROR]");
+        res.status(500).json({ status: "error", message: "Error getting user coins" });
+    }
+});
+
+app.get('/api/check-auth', (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ status: "error", message: "Not authenticated" });
+    }
+
+    try {
+        const users = getUsersDB();
+        const user = users.find(u => u.id === req.session.userId);
+        
+        if (!user) {
+            return res.status(404).json({ status: "error", message: "User not found" });
+        }
+
+        res.json({ 
+            status: "authenticated", 
+            user: {
+                id: user.id,
+                email: user.email,
+                coins: user.coins || 0
+            }
+        });
+
+    } catch (error) {
+        logger(`Error checking auth: ${error.message}`, "[ERROR]");
+        res.status(500).json({ status: "error", message: "Error checking authentication" });
+    }
+});
+
+app.post('/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            logger(`Error destroying session: ${err.message}`, "[ERROR]");
+            return res.status(500).json({ status: "error", message: "Error logging out" });
+        }
+        res.json({ status: "success", message: "Logged out successfully" });
+    });
+});
+
+app.get('/api/bot-status', (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ status: "error", message: "Authentication required" });
+    }
+
+    try {
+        const userId = req.session.userId;
+        const userBots = getUserBotsDB();
+        const userBot = userBots[userId] || {};
+        
+        // Get active bots for this user
+        const activeBots = [];
+        for (const [botId, bot] of global.activeBots) {
+            if (bot.userId === userId) {
+                const startTime = bot.startTime;
+                const now = new Date();
+                const uptime = Math.floor((now - startTime) / 1000); // seconds
+                
+                // Calculate remaining time based on coin (24 hours)
+                const remainingTime = (24 * 60 * 60) - uptime; // seconds
+                const remainingHours = Math.floor(remainingTime / 3600);
+                const remainingMinutes = Math.floor((remainingTime % 3600) / 60);
+                
+                activeBots.push({
+                    botId,
+                    running: true,
+                    uptime: uptime,
+                    uptimeFormatted: formatUptime(uptime),
+                    remainingTime: remainingTime,
+                    remainingTimeFormatted: `${remainingHours}h ${remainingMinutes}m`,
+                    startTime: startTime.toISOString()
+                });
+            }
+        }
+
+        // Get stopped bots for this user
+        const stoppedBots = Object.keys(userBot).filter(botId => !global.activeBots.has(botId));
+
+        res.json({
+            status: "success",
+            activeBots,
+            stoppedBots,
+            totalBots: activeBots.length + stoppedBots.length,
+            activeBotsCount: activeBots.length
+        });
+
+    } catch (error) {
+        logger(`Error getting bot status: ${error.message}`, "[ERROR]");
+        res.status(500).json({ status: "error", message: "Error getting bot status" });
+    }
+});
+
+function formatUptime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
 
 // Handle uncaught exceptions to prevent server crashes
 process.on('uncaughtException', (error) => {

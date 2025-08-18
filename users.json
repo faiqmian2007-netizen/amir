@@ -3,66 +3,110 @@
     "id": "1753912988193",
     "email": "mahiamir452@gmail.com",
     "password": "$2b$10$PjsMhzBpd6P5x1FGBP8IuOFA8.eHbPhYk.gDKhpQfOju1GjhrP0PK",
-    "createdAt": "2025-07-30T22:03:08.193Z"
+    "createdAt": "2025-07-30T22:03:08.193Z",
+    "coins": 0,
+    "lastCoinCollection": null,
+    "dailyCoinsCollected": 0,
+    "lastDailyReset": "2025-01-27T00:00:00.000Z"
   },
   {
     "id": "1753962120578",
     "email": "hmd127236@gmail.com",
     "password": "$2b$10$2o7ZbNRrZqo/wbKgSDwUyeviMCvXQyblTcJKbITeal.ogAq/X3kai",
-    "createdAt": "2025-07-31T11:42:00.578Z"
+    "createdAt": "2025-07-31T11:42:00.578Z",
+    "coins": 0,
+    "lastCoinCollection": null,
+    "dailyCoinsCollected": 0,
+    "lastDailyReset": "2025-01-27T00:00:00.000Z"
   },
   {
     "id": "1754563535480",
     "email": "khanaleeza062@gmail.com",
     "password": "$2b$10$MQTvUB86k4FnrgneLs3JIO6s9ozRjw9J4TaMz608NqidRr6joGeYq",
-    "createdAt": "2025-08-07T10:45:35.480Z"
+    "createdAt": "2025-08-07T10:45:35.480Z",
+    "coins": 0,
+    "lastCoinCollection": null,
+    "dailyCoinsCollected": 0,
+    "lastDailyReset": "2025-01-27T00:00:00.000Z"
   },
   {
     "id": "1754564237505",
     "email": "arbazkhan.11223377@gmail.com",
     "password": "$2b$10$W1hbX3x2x0x.M9e11N1ovOWzlUx9ps2J1aiyLppKdPw1CSg6NFo1C",
-    "createdAt": "2025-08-07T10:57:17.505Z"
+    "createdAt": "2025-08-07T10:57:17.505Z",
+    "coins": 0,
+    "lastCoinCollection": null,
+    "dailyCoinsCollected": 0,
+    "lastDailyReset": "2025-01-27T00:00:00.000Z"
   },
   {
     "id": "1754574725395",
     "email": "alzukhan369@gmail.com",
     "password": "$2b$10$VJo7MY6C0D46B8r3w5LwXOtNcPRaGT63Post60lT7wPqaQJ40ZtFy",
-    "createdAt": "2025-08-07T13:52:05.399Z"
+    "createdAt": "2025-08-07T13:52:05.399Z",
+    "coins": 0,
+    "lastCoinCollection": null,
+    "dailyCoinsCollected": 0,
+    "lastDailyReset": "2025-01-27T00:00:00.000Z"
   },
   {
     "id": "1754590400811",
     "email": "buttsaira452@gmail.com",
-    "password": "$2b$10$aRW7396xrpTlLgquEJ9LCee54q2.wkYlHG6aLNoPXWLJhdT0H780W",
-    "createdAt": "2025-08-07T18:13:20.815Z"
+    "password": "$2b$10$aRW7396xrpTlLgquEJ9LCee54q2.wkYkYHG6aLNoPXWLJhdT0H780W",
+    "createdAt": "2025-08-07T18:13:20.815Z",
+    "coins": 0,
+    "lastCoinCollection": null,
+    "dailyCoinsCollected": 0,
+    "lastDailyReset": "2025-01-27T00:00:00.000Z"
   },
   {
     "id": "1754604283790",
     "email": "magaffar11234@gmail.com",
     "password": "$2b$10$JYSIADm/UEt/lFiAzGdfpOA1qJiMv..Shxo1lrXTp2r61EuJ9wXrC",
-    "createdAt": "2025-08-07T22:04:43.793Z"
+    "createdAt": "2025-08-07T22:04:43.793Z",
+    "coins": 0,
+    "lastCoinCollection": null,
+    "dailyCoinsCollected": 0,
+    "lastDailyReset": "2025-01-27T00:00:00.000Z"
   },
   {
     "id": "1754756324783",
     "email": "naeemsahib866@gmail.com",
     "password": "$2b$10$D.VKnY8rNl3yGUEs6o2oaOPaIO5EPNO6o31JLPBmS0ZAz36ZD3oUu",
-    "createdAt": "2025-08-09T16:18:44.783Z"
+    "createdAt": "2025-08-09T16:18:44.783Z",
+    "coins": 0,
+    "lastCoinCollection": null,
+    "dailyCoinsCollected": 0,
+    "lastDailyReset": "2025-01-27T00:00:00.000Z"
   },
   {
     "id": "1754761788015",
     "email": "muhammadrayan172@gmail.com",
     "password": "$2b$10$BMdgy6E6EnUYQGWI2Gvmluzk3Xs2yPuHFQENPb.1RoLSY/Yb41yie",
-    "createdAt": "2025-08-09T17:49:48.015Z"
+    "createdAt": "2025-08-09T17:49:48.015Z",
+    "coins": 0,
+    "lastCoinCollection": null,
+    "dailyCoinsCollected": 0,
+    "lastDailyReset": "2025-01-27T00:00:00.000Z"
   },
   {
     "id": "1754788103083",
     "email": "mishisultan914@gmail.com",
     "password": "$2b$10$xB6RYIHGyHC7k.VrYySP8eAsA/p0YkA5b5zmJWgTeA3nU81nF0zSK",
-    "createdAt": "2025-08-10T01:08:23.083Z"
+    "createdAt": "2025-08-10T01:08:23.083Z",
+    "coins": 0,
+    "lastCoinCollection": null,
+    "dailyCoinsCollected": 0,
+    "lastDailyReset": "2025-01-27T00:00:00.000Z"
   },
   {
     "id": "1754855618482",
     "email": "alijyaar@gil.com",
     "password": "$2b$10$5XzJrgvH9h7f94uytrxKxuFL12/994dYtvl7QHa/hk69fAJz09zcu",
-    "createdAt": "2025-08-10T19:53:38.482Z"
+    "createdAt": "2025-08-10T19:53:38.482Z",
+    "coins": 0,
+    "lastCoinCollection": null,
+    "dailyCoinsCollected": 0,
+    "lastDailyReset": "2025-01-27T00:00:00.000Z"
   }
 ]
