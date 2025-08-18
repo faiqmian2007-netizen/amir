@@ -52,6 +52,78 @@ const saveUserBotsDB = (userBots) => {
     fs.writeFileSync('./user_bots.json', JSON.stringify(userBots, null, 2));
 };
 
+// Coin system helper functions
+const getUserById = (userId) => {
+    const users = getUsersDB();
+    return users.find(user => user.id === userId);
+};
+
+const updateUserCoins = (userId, coins, lastCoinCollection = null) => {
+    const users = getUsersDB();
+    const userIndex = users.findIndex(user => user.id === userId);
+    if (userIndex !== -1) {
+        users[userIndex].coins = coins;
+        if (lastCoinCollection) {
+            users[userIndex].lastCoinCollection = lastCoinCollection;
+        }
+        saveUsersDB(users);
+        return true;
+    }
+    return false;
+};
+
+const updateUserBotStatus = (userId, botRunning, botStartTime = null, botUptime = 0) => {
+    const users = getUsersDB();
+    const userIndex = users.findIndex(user => user.id === userId);
+    if (userIndex !== -1) {
+        users[userIndex].botRunning = botRunning;
+        users[userIndex].botStartTime = botStartTime;
+        users[userIndex].botUptime = botUptime;
+        saveUsersDB(users);
+        return true;
+    }
+    return false;
+};
+
+const canCollectCoins = (userId) => {
+    const user = getUserById(userId);
+    if (!user) return false;
+    
+    if (!user.lastCoinCollection) return true;
+    
+    const lastCollection = new Date(user.lastCoinCollection);
+    const now = new Date();
+    const hoursDiff = (now - lastCollection) / (1000 * 60 * 60);
+    
+    return hoursDiff >= 24;
+};
+
+const getDailyCoinsCollected = (userId) => {
+    const user = getUserById(userId);
+    if (!user) return 0;
+    
+    if (!user.lastCoinCollection) return 0;
+    
+    const lastCollection = new Date(user.lastCoinCollection);
+    const now = new Date();
+    const hoursDiff = (now - lastCollection) / (1000 * 60 * 60);
+    
+    if (hoursDiff < 24) {
+        // Calculate how many coins collected today
+        const startOfDay = new Date(lastCollection);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        if (lastCollection >= startOfDay && lastCollection <= endOfDay) {
+            // Count coins collected today
+            return Math.min(user.coins, 10);
+        }
+    }
+    
+    return 0;
+};
+
 // Update bot ownership tracking
 const trackBotOwnership = (userId, botId, botConfig) => {
     const userBots = getUserBotsDB();
@@ -498,7 +570,12 @@ app.post('/signup', async (req, res) => {
             id: Date.now().toString(),
             email,
             password: hashedPassword,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            coins: 0,
+            lastCoinCollection: null,
+            botRunning: false,
+            botStartTime: null,
+            botUptime: 0
         };
 
         users.push(newUser);
@@ -560,11 +637,92 @@ app.get('/api/user-info', (req, res) => {
         return res.status(401).json({ status: "error", message: "Not authenticated" });
     }
 
+    const user = getUserById(req.session.userId);
+    if (!user) {
+        return res.status(404).json({ status: "error", message: "User not found" });
+    }
+
     res.json({
         status: "success",
         user: {
-            id: req.session.userId,
-            email: req.session.userEmail
+            id: user.id,
+            email: user.email,
+            coins: user.coins || 0,
+            lastCoinCollection: user.lastCoinCollection,
+            botRunning: user.botRunning || false,
+            botStartTime: user.botStartTime,
+            botUptime: user.botUptime || 0
+        }
+    });
+});
+
+// Coin collection API endpoint
+app.post('/api/collect-coins', (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ status: "error", message: "Authentication required" });
+    }
+
+    const userId = req.session.userId;
+    
+    if (!canCollectCoins(userId)) {
+        const dailyCollected = getDailyCoinsCollected(userId);
+        const remainingCoins = 10 - dailyCollected;
+        return res.json({
+            status: "error",
+            message: `Daily limit reached. You can collect ${remainingCoins} more coins in the next 24 hours.`
+        });
+    }
+
+    const user = getUserById(userId);
+    if (!user) {
+        return res.status(404).json({ status: "error", message: "User not found" });
+    }
+
+    const newCoins = (user.coins || 0) + 1;
+    const now = new Date().toISOString();
+    
+    if (updateUserCoins(userId, newCoins, now)) {
+        logger(`User ${userId} collected 1 coin. Total coins: ${newCoins}`, "[COIN SYSTEM]");
+        res.json({
+            status: "success",
+            message: "Coin collected successfully!",
+            coins: newCoins,
+            dailyCollected: getDailyCoinsCollected(userId)
+        });
+    } else {
+        res.status(500).json({ status: "error", message: "Failed to update coins" });
+    }
+});
+
+// Get user dashboard data
+app.get('/api/dashboard-data', (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ status: "error", message: "Authentication required" });
+    }
+
+    const userId = req.session.userId;
+    const user = getUserById(userId);
+    
+    if (!user) {
+        return res.status(404).json({ status: "error", message: "User not found" });
+    }
+
+    const userBots = getUserBotsDB();
+    const userBotList = userBots[userId] || {};
+
+    res.json({
+        status: "success",
+        data: {
+            user: {
+                id: user.id,
+                email: user.email,
+                coins: user.coins || 0,
+                lastCoinCollection: user.lastCoinCollection,
+                botRunning: user.botRunning || false,
+                botStartTime: user.botStartTime,
+                botUptime: user.botUptime || 0
+            },
+            bots: userBotList
         }
     });
 });
@@ -580,6 +738,12 @@ app.post('/start-bot', (req, res) => {
 
     if (!botId) {
         return res.json({ status: "error", message: "Bot ID is required" });
+    }
+
+    // Check if user has enough coins to run the bot
+    const user = getUserById(userId);
+    if (!user || user.coins <= 0) {
+        return res.json({ status: "error", message: "You need coins to run the bot! Collect coins from the dashboard first." });
     }
 
     // Check if bot ID already exists for any user
@@ -708,8 +872,59 @@ app.post('/start-bot', (req, res) => {
             config: config
         });
 
+        // Deduct 1 coin from user when bot starts
+        const newCoins = Math.max(0, user.coins - 1);
+        updateUserCoins(userId, newCoins);
+        updateUserBotStatus(userId, true, new Date().toISOString(), 0);
+        
+        logger(`User ${userId} started bot ${botId}. Coins deducted: 1. Remaining coins: ${newCoins}`, "[ COIN SYSTEM ]");
+
         // Track bot ownership and enable auto-restart
         trackBotOwnership(userId, botId, config);
+
+        // Start coin deduction timer (deduct 1 coin every hour)
+        const coinDeductionInterval = setInterval(() => {
+            const currentUser = getUserById(userId);
+            if (currentUser && currentUser.coins > 0) {
+                const newCoins = Math.max(0, currentUser.coins - 1);
+                updateUserCoins(userId, newCoins);
+                
+                // Update bot uptime
+                const botInfo = global.activeBots.get(botId);
+                if (botInfo) {
+                    const uptime = Math.floor((new Date() - botInfo.startTime) / 1000);
+                    updateUserBotStatus(userId, true, botInfo.startTime.toISOString(), uptime);
+                }
+                
+                logger(`Hourly coin deduction for bot ${botId}. User ${userId} coins: ${currentUser.coins} -> ${newCoins}`, "[ COIN SYSTEM ]");
+                
+                // Stop bot if no coins left
+                if (newCoins === 0) {
+                    logger(`User ${userId} has no coins left. Stopping bot ${botId}`, "[ COIN SYSTEM ]");
+                    clearInterval(coinDeductionInterval);
+                    
+                    // Stop the bot process
+                    try {
+                        if (global.activeBots.has(botId)) {
+                            const bot = global.activeBots.get(botId);
+                            if (bot.process && !bot.process.killed) {
+                                process.kill(-bot.process.pid, 'SIGKILL');
+                            }
+                            global.activeBots.delete(botId);
+                            updateUserBotStatus(userId, false, null, 0);
+                        }
+                    } catch (error) {
+                        logger(`Error stopping bot ${botId} due to insufficient coins: ${error.message}`, "[ COIN SYSTEM ERROR ]");
+                    }
+                }
+            } else {
+                // No coins left, stop the deduction timer
+                clearInterval(coinDeductionInterval);
+            }
+        }, 60 * 60 * 1000); // Every hour (60 minutes * 60 seconds * 1000 milliseconds)
+
+        // Store the interval reference for cleanup
+        global.activeBots.get(botId).coinDeductionInterval = coinDeductionInterval;
 
         // Re-enable auto-restart and clear manually stopped flag for manual start
         const userBots = getUserBotsDB();
@@ -849,9 +1064,18 @@ app.post('/stop-bot', (req, res) => {
 
             global.activeBots.delete(botId);
 
+            // Clear coin deduction interval
+            if (bot.coinDeductionInterval) {
+                clearInterval(bot.coinDeductionInterval);
+            }
+
             if (bot.configPath && fs.existsSync(bot.configPath)) {
                 fs.unlinkSync(bot.configPath);
             }
+
+            // Update user bot status
+            const botUptime = bot.startTime ? Math.floor((new Date() - bot.startTime) / 1000) : 0;
+            updateUserBotStatus(userId, false, null, botUptime);
 
             logger(`Bot ${botId} manually stopped by user ${userId} with PID ${bot.process.pid}`, "[ BOT STOP ]");
             res.json({ status: "success", message: "Bot stopped successfully" });
@@ -906,12 +1130,20 @@ app.post('/delete-bot', (req, res) => {
 
             global.activeBots.delete(botId);
 
+            // Clear coin deduction interval
+            if (bot.coinDeductionInterval) {
+                clearInterval(bot.coinDeductionInterval);
+            }
+
             if (bot.configPath && fs.existsSync(bot.configPath)) {
                 fs.unlinkSync(bot.configPath);
             }
 
             logger(`Bot ${botId} process terminated with PID ${bot.process.pid} during deletion`, "[ BOT DELETE ]");
         }
+
+        // Update user bot status
+        updateUserBotStatus(userId, false, null, 0);
 
         // Remove from ownership tracking
         removeBotOwnership(userId, botId);
@@ -1709,6 +1941,184 @@ app.post('/api/reset-code-file', (req, res) => {
         res.json({ status: 'success', content: content });
     } catch (error) {
         logger(`Error resetting code file: ${error.message}`, "[ERROR]");
+        res.json({ status: 'error', message: error.message });
+    }
+});
+
+// File management API endpoints for bot-manager
+app.get('/api/bot-files', (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ status: "error", message: "Authentication required" });
+    }
+
+    try {
+        const priyanshDir = path.join(__dirname, 'Priyansh');
+        const appstatePath = path.join(__dirname, 'appstate.json');
+        const configPath = path.join(__dirname, 'config.json');
+
+        const files = [];
+
+        // Add main files
+        if (fs.existsSync(appstatePath)) {
+            files.push({
+                name: 'appstate.json',
+                type: 'file',
+                path: 'appstate.json',
+                size: fs.statSync(appstatePath).size
+            });
+        }
+
+        if (fs.existsSync(configPath)) {
+            files.push({
+                name: 'config.json',
+                type: 'file',
+                path: 'config.json',
+                size: fs.statSync(configPath).size
+            });
+        }
+
+        // Add Priyansh folder contents
+        if (fs.existsSync(priyanshDir)) {
+            const priyanshContents = fs.readdirSync(priyanshDir, { withFileTypes: true });
+            
+            for (const item of priyanshContents) {
+                if (item.isDirectory()) {
+                    const subDirPath = path.join(priyanshDir, item.name);
+                    const subDirContents = fs.readdirSync(subDirPath, { withFileTypes: true });
+                    
+                    const subFiles = [];
+                    for (const subItem of subDirContents) {
+                        if (subItem.isFile() && subItem.name.endsWith('.js')) {
+                            subFiles.push({
+                                name: subItem.name,
+                                type: 'file',
+                                path: `Priyansh/${item.name}/${subItem.name}`,
+                                size: fs.statSync(path.join(subDirPath, subItem.name)).size
+                            });
+                        }
+                    }
+                    
+                    files.push({
+                        name: item.name,
+                        type: 'folder',
+                        path: `Priyansh/${item.name}`,
+                        contents: subFiles
+                    });
+                }
+            }
+        }
+
+        res.json({
+            status: 'success',
+            files: files
+        });
+    } catch (error) {
+        logger(`Error fetching bot files: ${error.message}`, "[ERROR]");
+        res.json({
+            status: 'error',
+            message: error.message,
+            files: []
+        });
+    }
+});
+
+app.get('/api/bot-file-content/:filePath(*)', (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ status: "error", message: "Authentication required" });
+    }
+
+    const { filePath } = req.params;
+    
+    try {
+        const fullPath = path.join(__dirname, filePath);
+        
+        // Security check: prevent directory traversal
+        if (!fullPath.startsWith(__dirname)) {
+            return res.status(403).json({ status: "error", message: "Access denied" });
+        }
+
+        if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+            const content = fs.readFileSync(fullPath, 'utf8');
+            res.json({
+                status: 'success',
+                content: content,
+                fileName: path.basename(filePath)
+            });
+        } else {
+            res.json({ status: 'error', message: 'File not found' });
+        }
+    } catch (error) {
+        logger(`Error reading bot file: ${error.message}`, "[ERROR]");
+        res.json({ status: 'error', message: error.message });
+    }
+});
+
+app.post('/api/save-bot-file', (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ status: "error", message: "Authentication required" });
+    }
+
+    const { filePath, content } = req.body;
+    
+    if (!filePath || content === undefined) {
+        return res.json({ status: "error", message: "File path and content are required" });
+    }
+
+    try {
+        const fullPath = path.join(__dirname, filePath);
+        
+        // Security check: prevent directory traversal
+        if (!fullPath.startsWith(__dirname)) {
+            return res.status(403).json({ status: "error", message: "Access denied" });
+        }
+
+        // Create backup before saving
+        if (fs.existsSync(fullPath)) {
+            const backupPath = fullPath + '.backup';
+            fs.copyFileSync(fullPath, backupPath);
+        }
+
+        fs.writeFileSync(fullPath, content, 'utf8');
+        
+        logger(`User ${req.session.userEmail} saved bot file: ${filePath}`, "[BOT MANAGER]");
+        res.json({ status: 'success', message: 'File saved successfully' });
+    } catch (error) {
+        logger(`Error saving bot file: ${error.message}`, "[ERROR]");
+        res.json({ status: 'error', message: error.message });
+    }
+});
+
+app.post('/api/reset-bot-file', (req, res) => {
+    if (!req.session.userId) {
+        return res.status(401).json({ status: "error", message: "Authentication required" });
+    }
+
+    const { filePath } = req.body;
+    
+    if (!filePath) {
+        return res.json({ status: "error", message: "File path is required" });
+    }
+
+    try {
+        const fullPath = path.join(__dirname, filePath);
+        
+        // Security check: prevent directory traversal
+        if (!fullPath.startsWith(__dirname)) {
+            return res.status(403).json({ status: "error", message: "Access denied" });
+        }
+
+        // Check if backup exists
+        const backupPath = fullPath + '.backup';
+        if (fs.existsSync(backupPath)) {
+            fs.copyFileSync(backupPath, fullPath);
+            fs.unlinkSync(backupPath);
+            logger(`User ${req.session.userEmail} reset bot file: ${filePath}`, "[BOT MANAGER]");
+            res.json({ status: 'success', message: 'File reset to original version' });
+        } else {
+            res.json({ status: 'error', message: 'No backup found for this file' });
+        }
+    } catch (error) {
+        logger(`Error resetting bot file: ${error.message}`, "[ERROR]");
         res.json({ status: 'error', message: error.message });
     }
 });

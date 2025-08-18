@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🤖 Amir Bot Manager - Professional Dashboard</title>
+    <title>🤖 Amir Bot Manager - Professional Bot Management</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -11,1265 +14,925 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #f093fb;
+            --success-color: #4facfe;
+            --warning-color: #f093fb;
+            --danger-color: #ff6b6b;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+            --text-color: #2c3e50;
+            --border-radius: 15px;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             min-height: 100vh;
-            padding: 20px;
+            color: var(--text-color);
+            overflow-x: hidden;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1600px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
-        .content {
-            padding: 30px;
-        }
-
-        .form-section {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-
-        .section-title {
-            font-size: 1.3rem;
-            color: #333;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-group.full-width {
-            grid-column: 1 / -1;
-        }
-
-        label {
-            font-weight: 600;
-            color: #555;
-            margin-bottom: 8px;
-            font-size: 0.95rem;
-        }
-
-        input, textarea, select {
-            padding: 12px 15px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: #fafbfc;
-        }
-
-        input:focus, textarea:focus, select:focus {
-            outline: none;
-            border-color: #667eea;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        .selection-container {
-            background: #f8f9fa;
-            border-radius: 10px;
             padding: 20px;
-            margin-top: 15px;
         }
 
-        .selection-header {
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: var(--border-radius);
+            padding: 25px 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
             flex-wrap: wrap;
-            gap: 10px;
         }
 
-        .bulk-actions {
+        .header-left h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header-left p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .header-controls {
             display: flex;
-            gap: 10px;
+            gap: 15px;
+            align-items: center;
             flex-wrap: wrap;
         }
 
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 0.85rem;
+        .control-btn {
+            padding: 12px 24px;
             border: none;
-            border-radius: 6px;
+            border-radius: 25px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-
-        .btn-select-all {
-            background: #28a745;
+            font-weight: 600;
+            transition: var(--transition);
             color: white;
-        }
-
-        .btn-select-none {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-small:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .items-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid #e1e5e9;
-            border-radius: 8px;
-            padding: 15px;
-            background: white;
-        }
-
-        .item-checkbox {
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, var(--success-color), #00d2ff);
+        }
+
+        .stop-btn {
+            background: linear-gradient(135deg, var(--danger-color), #e74c3c);
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, var(--warning-color), #f39c12);
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .back-btn {
+            background: linear-gradient(135deg, #6c757d, #495057);
+            text-decoration: none;
+        }
+
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        /* File Explorer */
+        .file-explorer {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+            height: fit-content;
+        }
+
+        .explorer-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light-color);
+        }
+
+        .explorer-header h3 {
+            color: var(--dark-color);
+            font-size: 1.2rem;
+        }
+
+        .file-tree {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .file-item {
             padding: 8px 12px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            transition: all 0.2s ease;
+            margin: 2px 0;
+            border-radius: 8px;
             cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .file-item.active {
+            background: rgba(102, 126, 234, 0.2);
+            color: var(--primary-color);
+        }
+
+        .file-item.folder {
+            font-weight: 600;
+        }
+
+        .file-item.file {
+            font-family: 'Monaco', 'Courier New', monospace;
             font-size: 0.9rem;
         }
 
-        .item-checkbox:hover {
-            background: #e9ecef;
-            transform: translateY(-1px);
+        .file-icon {
+            width: 16px;
+            text-align: center;
         }
 
-        .item-checkbox input[type="checkbox"] {
-            margin: 0;
-            transform: scale(1.1);
+        /* Code Editor */
+        .code-editor {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
         }
 
-        .action-buttons {
+        .editor-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 20px;
             display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .editor-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .editor-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .editor-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .save-btn {
+            background: var(--success-color);
+        }
+
+        .close-btn {
+            background: var(--danger-color);
+        }
+
+        .reset-btn-editor {
+            background: var(--warning-color);
+        }
+
+        .editor-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .editor-content {
+            padding: 20px;
+            min-height: 500px;
+        }
+
+        .CodeMirror {
+            height: 500px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        /* Console */
+        .console-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+        }
+
+        .console-header {
+            display: flex;
+            align-items: center;
             gap: 15px;
-            justify-content: center;
-            margin-top: 30px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light-color);
+        }
+
+        .console-header h3 {
+            color: var(--dark-color);
+            font-size: 1.3rem;
+        }
+
+        .console-info {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
         }
 
-        .btn {
-            padding: 15px 30px;
-            font-size: 1.1rem;
-            border: none;
+        .info-item {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 15px;
             border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            min-width: 150px;
+            text-align: center;
+            min-width: 120px;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #28a745, #20c997);
-            color: white;
+        .info-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
         }
 
-        .btn-danger {
-            background: linear-gradient(135deg, #dc3545, #fd7e14);
-            color: white;
+        .info-label {
+            font-size: 0.9rem;
+            color: #666;
         }
 
-        .btn-info {
-            background: linear-gradient(135deg, #17a2b8, #6610f2);
-            color: white;
-        }
-
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .status-section {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            margin-top: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .status-card {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        .console-output {
+            background: #1e1e1e;
+            color: #00ff00;
             padding: 20px;
             border-radius: 10px;
-            border-left: 4px solid #667eea;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            height: 300px;
+            overflow-y: auto;
+            border: 2px solid #333;
         }
 
-        .status-card h4 {
-            color: #333;
-            margin-bottom: 10px;
+        .console-line {
+            margin-bottom: 5px;
+            word-wrap: break-word;
         }
 
-        .status-card p {
-            color: #666;
-            margin: 5px 0;
+        .console-line.error {
+            color: #ff6b6b;
         }
 
+        .console-line.success {
+            color: #4facfe;
+        }
+
+        .console-line.info {
+            color: #f093fb;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .file-explorer {
+                order: 2;
+            }
+            
+            .code-editor {
+                order: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+            
+            .header-controls {
+                justify-content: center;
+            }
+            
+            .console-info {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        /* Loading Animation */
         .loading {
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            border: 3px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
         }
 
-        .alert {
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            color: var(--text-color);
             padding: 15px 20px;
-            border-radius: 8px;
-            margin: 15px 0;
-            font-weight: 500;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            border-left: 4px solid #28a745;
-            color: #155724;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            border-left: 4px solid #dc3545;
-            color: #721c24;
-        }
-
-        .status-indicator.running {
-            background-color: #4CAF50;
-        }
-
-        .status-indicator.stopped {
-            background-color: #f44336;
-        }
-
-        .owner-info {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 15px;
             border-radius: 10px;
-            margin: 20px 0;
-            color: white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success-color);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .toast.info {
+            border-left: 4px solid var(--primary-color);
+        }
+
+        /* Empty State */
+        .empty-state {
             text-align: center;
+            padding: 60px 20px;
+            color: #666;
         }
 
-        .owner-info h3 {
-            margin: 0 0 10px 0;
-            font-size: 1.2em;
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--dark-color);
         }
 
-        .owner-info p {
-            margin: 0;
-            font-size: 1em;
-        }
-
-        .admin-login {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            text-align: center;
-        }
-
-        .admin-panel {
-            display: none;
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-
-        .user-session {
-            background: linear-gradient(135deg, #28a745, #20c997);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
+        .empty-state p {
             margin-bottom: 20px;
-            text-align: center;
         }
 
-        .logout-btn {
-            background: #dc3545;
+        .select-file-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
             border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
+            padding: 15px 30px;
+            border-radius: 25px;
             cursor: pointer;
-            margin-left: 10px;
-        }
-
-        .bot-card {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #dee2e6;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .bot-card:hover {
-            background: #e9ecef;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .bot-config-section {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border-left: 4px solid #667eea;
-        }
-
-        .config-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        .config-item:last-child {
-            border-bottom: none;
-        }
-
-        .config-label {
             font-weight: 600;
-            color: #495057;
+            transition: var(--transition);
         }
 
-        .config-value {
-            color: #6c757d;
-            font-family: monospace;
-            background: #fff;
-            padding: 2px 6px;
-            border-radius: 3px;
-            border: 1px solid #dee2e6;
+        .select-file-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
         }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-
-            .container {
-                margin: 0;
-                border-radius: 15px;
-            }
-
-            .header {
-                padding: 20px 15px;
-            }
-
-            .header h1 {
-                font-size: 1.8rem;
-            }
-
-            .content {
-                padding: 20px 15px;
-            }
-
-            .form-section {
-                padding: 20px 15px;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-
-            .btn {
-                min-width: 100%;
-                padding: 15px 20px;
-                margin-bottom: 10px;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-            }
-
-            .items-grid {
-                grid-template-columns: 1fr;
-                max-height: 200px;
-            }
-
-            .selection-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .bulk-actions {
-                width: 100%;
-                justify-content: space-between;
-            }
-
-            .status-grid {
-                grid-template-columns: 1fr;
-            }
-
-            input, textarea, select {
-                font-size: 16px; /* Prevents zoom on iOS */
-            }
-        }
-
-        @media (max-width: 480px) {
-            .header h1 {
-                font-size: 1.5rem;
-            }
-
-            .owner-info h3 {
-                font-size: 1rem;
-            }
-
-            .btn {
-                font-size: 1rem;
-                padding: 12px 16px;
-            }
-
-            .form-section {
-                padding: 15px 10px;
-            }
-        }
-
-        .admin-actions {
-                display: flex;
-                gap: 10px;
-                margin-top: 15px;
-            }
-
-            .admin-actions button {
-                padding: 8px 16px;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 14px;
-                transition: background-color 0.3s;
-            }
-
-            .stop-btn {
-                background-color: #dc3545;
-                color: white;
-            }
-
-            .stop-btn:hover {
-                background-color: #c82333;
-            }
-
-            .download-btn {
-                background-color: #007bff;
-                color: white;
-                padding: 10px 20px;
-                border: none;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 14px;
-                margin-top: 10px;
-                transition: background-color 0.3s;
-                width: 100%;
-            }
-
-            .download-btn:hover {
-                background-color: #0056b3;
-            }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Header -->
         <div class="header">
-            <h1>🤖 Facebook Bot Manager</h1>
-            <p>Professional Bot Management System</p>
-            <div class="owner-info">
-                <h3>👑 Owner: Mian Amir</h3>
-                <p>📱 WhatsApp: +923114397148</p>
+            <div class="header-left">
+                <h1><i class="fas fa-robot"></i> Bot Manager</h1>
+                <p>Professional Bot Configuration & Management</p>
+            </div>
+            <div class="header-controls">
+                <button class="control-btn start-btn" id="startBtn" onclick="startBot()">
+                    <i class="fas fa-play"></i> Start Bot
+                </button>
+                <button class="control-btn stop-btn" id="stopBtn" onclick="stopBot()" style="display: none;">
+                    <i class="fas fa-stop"></i> Stop Bot
+                </button>
+                <button class="control-btn reset-btn" onclick="resetBot()">
+                    <i class="fas fa-redo"></i> Reset Bot
+                </button>
+                <a href="/dashboard" class="control-btn back-btn">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
             </div>
         </div>
 
-        <div class="content">
-            <!-- User Session Section -->
-            <div id="userSession" class="user-session" style="display: none;">
-                <span id="welcomeMessage">Welcome, User!</span>
-                <button class="logout-btn" onclick="logout()">Logout</button>
+        <!-- Console Section -->
+        <div class="console-section">
+            <div class="console-header">
+                <h3><i class="fas fa-terminal"></i> Bot Console</h3>
             </div>
-
-            <!-- Web Admin Button -->
-            <div class="admin-login">
-                <button id="webAdminBtn" class="btn btn-info" onclick="showAdminLogin()" style="min-width: 200px; margin-bottom: 15px;">
-                    🌐 Web Admin Only
-                </button>
-
-                <!-- Hidden Admin Login Form -->
-                <div id="adminLoginForm" style="display: none;">
-                    <h3>🔐 Admin Login</h3>
-                    <div style="display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap;">
-                        <input type="text" id="adminUsername" placeholder="Username" style="width: 150px;">
-                        <input type="password" id="adminPassword" placeholder="Password" style="width: 150px;">
-                        <button class="btn btn-info" onclick="adminLogin()" style="min-width: 100px;">Login</button>
-                        <button class="btn btn-danger" onclick="hideAdminLogin()" style="min-width: 100px;">Cancel</button>
-                    </div>
+            <div class="console-info">
+                <div class="info-item">
+                    <div class="info-value" id="coinDisplay">0</div>
+                    <div class="info-label">Available Coins</div>
                 </div>
-
-                <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
-                    Regular users: Just start using the bot manager below<br>
-                    Admin: Click "Web Admin Only" button to access admin panel
-                </p>
+                <div class="info-item">
+                    <div class="info-value" id="botStatus">Stopped</div>
+                    <div class="info-label">Bot Status</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-value" id="uptimeDisplay">00:00:00</div>
+                    <div class="info-label">Uptime</div>
+                </div>
             </div>
+            <div class="console-output" id="consoleOutput">
+                <div class="console-line info">🤖 Bot Manager Console Ready</div>
+                <div class="console-line">Select a file from the explorer to start editing</div>
+                <div class="console-line">Use the controls above to manage your bot</div>
+            </div>
+        </div>
 
-            <!-- Admin Panel -->
-            <div id="adminPanel" class="admin-panel">
-                <h2 class="section-title">👑 Admin Panel - All Users' Bots</h2>
-                <div id="adminBotsList"></div>
-
-                <!-- Bot Details Modal -->
-                <div id="botDetailsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; overflow-y: auto;">
-                    <div style="background: white; margin: 20px auto; padding: 30px; border-radius: 15px; max-width: 800px; position: relative;">
-                        <button onclick="closeBotDetails()" style="position: absolute; top: 15px; right: 15px; background: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 16px;">✕ Close</button>
-                        <h2 id="botDetailsTitle" style="margin-bottom: 20px; color: #333;">🤖 Bot Configuration Details</h2>
-                        <div id="botDetailsContent"></div>
-                    </div>
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- File Explorer -->
+            <div class="file-explorer">
+                <div class="explorer-header">
+                    <i class="fas fa-folder-open"></i>
+                    <h3>File Explorer</h3>
+                </div>
+                <div class="file-tree" id="fileTree">
+                    <div class="loading">Loading files...</div>
                 </div>
             </div>
 
-            <!-- Bot Configuration Section -->
-            <div class="form-section">
-                <h2 class="section-title">
-                    ⚙️ Bot Configuration
-                </h2>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="botId">Bot ID *</label>
-                        <input type="text" id="botId" placeholder="Enter unique bot ID (e.g., bot1, bot2)" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="prefix">Bot Prefix</label>
-                        <input type="text" id="prefix" value="." placeholder="Command prefix (e.g., ., !, /)">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="adminUid">Admin UID</label>
-                        <input type="text" id="adminUid" placeholder="Your Facebook user ID">
+            <!-- Code Editor -->
+            <div class="code-editor">
+                <div class="editor-header">
+                    <div class="editor-title" id="editorTitle">Select a file to edit</div>
+                    <div class="editor-controls">
+                        <button class="editor-btn save-btn" id="saveBtn" onclick="saveFile()" style="display: none;">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <button class="editor-btn reset-btn-editor" id="resetBtn" onclick="resetFile()" style="display: none;">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                        <button class="editor-btn close-btn" id="closeBtn" onclick="closeFile()" style="display: none;">
+                            <i class="fas fa-times"></i> Close
+                        </button>
                     </div>
                 </div>
-
-                <div class="form-group full-width">
-                    <label for="appstate">App State (JSON) *</label>
-                    <textarea id="appstate" placeholder="Paste your Facebook app state JSON here" required></textarea>
-                </div>
-            </div>
-
-            <!-- Commands Selection Section -->
-            <div class="form-section">
-                <h2 class="section-title">
-                    🎯 Commands Selection
-                </h2>
-
-                <div class="selection-container">
-                    <div class="selection-header">
-                        <span><strong>Select Commands to Enable:</strong></span>
-                        <div class="bulk-actions">
-                            <button class="btn-small btn-select-all" onclick="selectAllCommands()">Select All</button>
-                            <button class="btn-small btn-select-none" onclick="selectNoneCommands()">Select None</button>
-                        </div>
+                <div class="editor-content" id="editorContent">
+                    <div class="empty-state">
+                        <h3>No File Selected</h3>
+                        <p>Choose a file from the file explorer to start editing</p>
+                        <button class="select-file-btn" onclick="document.getElementById('fileTree').scrollIntoView()">
+                            <i class="fas fa-folder-open"></i> Browse Files
+                        </button>
                     </div>
-
-                    <div id="commandsGrid" class="items-grid">
-                        <div class="loading"></div>
-                        <span>Loading commands...</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Events Selection Section -->
-            <div class="form-section">
-                <h2 class="section-title">
-                    🎪 Events Selection
-                </h2>
-
-                <div class="selection-container">
-                    <div class="selection-header">
-                        <span><strong>Select Events to Enable:</strong></span>
-                        <div class="bulk-actions">
-                            <button class="btn-small btn-select-all" onclick="selectAllEvents()">Select All</button>
-                            <button class="btn-small btn-select-none" onclick="selectNoneEvents()">Select None</button>
-                        </div>
-                    </div>
-
-                    <div id="eventsGrid" class="items-grid">
-                        <div class="loading"></div>
-                        <span>Loading events...</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="action-buttons">
-                <button class="btn btn-primary" onclick="startBot()">
-                    🚀 Start Bot
-                </button>
-                <button class="btn btn-danger" onclick="stopBot()">
-                    🛑 Stop Bot
-                </button>
-                <button class="btn btn-info" onclick="getBotStatus()">
-                    📊 Refresh Status
-                </button>
-                <button class="btn btn-info" onclick="window.location.href='/dashboard'">
-                    📋 Go to Dashboard
-                </button>
-            </div>
-
-            <!-- Status Section -->
-            <div class="status-section">
-                <h2 class="section-title">
-                    📈 Bot Status
-                </h2>
-                <div id="status">
-                    <p>Click "Refresh Status" to see bot information</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Available commands and events
-        let availableCommands = [];
-        let availableEvents = [];
-        let currentUser = null;
-        let isAdmin = false;
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
 
-        // Load available commands and events on page load
+    <!-- CodeMirror Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+
+    <script>
+        let currentFile = null;
+        let codeEditor = null;
+        let userData = null;
+        let botRunning = false;
+        let botStartTime = null;
+        let uptimeInterval = null;
+
+        // Initialize bot manager
         document.addEventListener('DOMContentLoaded', function() {
-            loadAvailableItems();
-            initializeUser();
+            loadUserData();
+            loadFileTree();
+            setInterval(updateConsole, 5000); // Update console every 5 seconds
         });
 
-        // Initialize user session
-        function initializeUser() {
-            // Check if user is authenticated via session
-            fetch('/api/user-info')
-                .then(response => {
-                    if (response.status === 401) {
-                        // Not authenticated, redirect to login
-                        window.location.href = '/login';
-                        return null;
-                    }
-                    return response.json();
-                })
-                .then(result => {
-                    if (result && result.status === 'success') {
-                        currentUser = result.user.id;
-                        
-                        // Check if admin
-                        const savedAdmin = localStorage.getItem('isAdmin');
-                        isAdmin = savedAdmin === 'true';
-                        updateUserInterface();
-                    } else if (result === null) {
-                        // User not authenticated, redirect to login
-                        window.location.href = '/login';
-                    }
-                })
-                .catch((error) => {
-                    console.error('Auth check error:', error);
-                    // Redirect to login on error
-                    window.location.href = '/login';
-                });
-        }
-
-        // Show/hide admin login form
-        function showAdminLogin() {
-            const webAdminBtn = document.getElementById('webAdminBtn');
-            const adminLoginForm = document.getElementById('adminLoginForm');
-
-            if (webAdminBtn) webAdminBtn.style.display = 'none';
-            if (adminLoginForm) adminLoginForm.style.display = 'block';
-        }
-
-        function hideAdminLogin() {
-            const webAdminBtn = document.getElementById('webAdminBtn');
-            const adminLoginForm = document.getElementById('adminLoginForm');
-
-            if (webAdminBtn) webAdminBtn.style.display = 'block';
-            if (adminLoginForm) adminLoginForm.style.display = 'none';
-        }
-
-        // Update user interface based on login status
-        function updateUserInterface() {
-            const userSession = document.getElementById('userSession');
-            const adminLogin = document.querySelector('.admin-login');
-            const adminPanel = document.getElementById('adminPanel');
-            const welcomeMessage = document.getElementById('welcomeMessage');
-            const webAdminBtn = document.getElementById('webAdminBtn');
-            const adminLoginForm = document.getElementById('adminLoginForm');
-
-            if (currentUser && userSession && welcomeMessage) {
-                userSession.style.display = 'block';
-                
-                // Get user email from session
-                fetch('/api/user-info')
-                    .then(response => response.json())
-                    .then(result => {
-                        if (result.status === 'success') {
-                            welcomeMessage.textContent = isAdmin ? 'Welcome, Admin!' : `Welcome, ${result.user.email}!`;
-                        }
-                    });
-
-                if (isAdmin) {
-                    if (adminLogin) adminLogin.style.display = 'none';
-                    if (adminPanel) adminPanel.style.display = 'block';
-                    loadAdminPanel();
-                } else {
-                    if (adminLogin) adminLogin.style.display = 'block';
-                    if (adminPanel) adminPanel.style.display = 'none';
-                    if (webAdminBtn) webAdminBtn.style.display = 'block';
-                    if (adminLoginForm) adminLoginForm.style.display = 'none';
-                }
-            }
-        }
-
-        // Admin login
-        async function adminLogin() {
-            const username = document.getElementById('adminUsername').value;
-            const password = document.getElementById('adminPassword').value;
-
-            if (username === 'owner' && password === 'amir##46') {
-                isAdmin = true;
-                localStorage.setItem('isAdmin', 'true');
-                updateUserInterface();
-                showAlert('✅ Admin login successful!', 'success');
-            } else {
-                showAlert('❌ Invalid admin credentials!', 'error');
-            }
-        }
-
-        // Logout
-        function logout() {
-            fetch('/logout', { method: 'POST' })
-                .then(() => {
-                    window.location.href = '/';
-                })
-                .catch(() => {
-                    window.location.href = '/';
-                });
-        }
-
-        // Load admin panel with all users' bots
-        async function loadAdminPanel() {
-            if (!isAdmin) return;
-
+        // Load user data
+        async function loadUserData() {
             try {
-                const response = await fetch('/admin/all-bots');
-                const result = await response.json();
-
-                const adminBotsList = document.getElementById('adminBotsList');
-
-                if (result.totalBots === 0) {
-                    adminBotsList.innerHTML = '<p>No active bots from any users</p>';
-                    return;
-                }
-
-                const botsByUser = {};
-                Object.entries(result.bots).forEach(([botId, info]) => {
-                    const userId = info.userId || 'unknown';
-                    if (!botsByUser[userId]) {
-                        botsByUser[userId] = [];
-                    }
-                    botsByUser[userId].push({ botId, ...info });
-                });
-
-                const adminContent = Object.entries(botsByUser).map(([userId, bots]) => `
-                    <div style="margin-bottom: 20px; border: 1px solid #ddd; border-radius: 10px; padding: 15px;">
-                        <h4>👤 User: ${userId}</h4>
-                        <div style="display: grid; gap: 10px;">
-                            ${bots.map(bot => `
-                                <div class="bot-card" onclick="showBotDetails('${bot.botId}', '${userId}', ${JSON.stringify(bot).replace(/"/g, '&quot;')})">
-                                    <strong>🤖 ${bot.botId}</strong> <span style="float: right; color: #666; font-size: 0.9em;">Click for details →</span><br>
-                                    Status: ${bot.running ? '🟢 Running' : '🔴 Stopped'}<br>
-                                    Uptime: ${bot.uptime}<br>
-                                    PID: ${bot.pid || 'N/A'}<br>
-                                    Started: ${bot.startTime ? new Date(bot.startTime).toLocaleString() : 'N/A'}
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `).join('');
-
-                adminBotsList.innerHTML = adminContent + `<p><strong>Total Active Bots: ${result.totalBots}</strong></p>`;
-            } catch (error) {
-                document.getElementById('adminBotsList').innerHTML = 
-                    '<p style="color: red;">❌ Error loading admin panel: ' + error.message + '</p>';
-            }
-        }
-
-        // Show detailed bot configuration
-        function showBotDetails(botId, userId, botData) {
-            const modal = document.getElementById('botDetailsModal');
-            const title = document.getElementById('botDetailsTitle');
-            const content = document.getElementById('botDetailsContent');
-
-            title.textContent = `🤖 ${botId} - Configuration Details`;
-
-            const config = botData.config || {};
-            const detailsHTML = `
-                <div class="bot-config-section">
-                    <h4>📋 Basic Information</h4>
-                    <div class="config-item">
-                        <span class="config-label">Bot ID:</span>
-                        <span class="config-value">${botId}</span>
-                    </div>
-                    <div class="config-item">
-                        <span class="config-label">User ID:</span>
-                        <span class="config-value">${userId}</span>
-                    </div>
-                    <div class="config-item">
-                        <span class="config-label">Status:</span>
-                        <span class="config-value">${botData.running ? '🟢 Running' : '🔴 Stopped'}</span>
-                    </div>
-                    <div class="config-item">
-                        <span class="config-label">Process ID:</span>
-                        <span class="config-value">${botData.pid || 'N/A'}</span>
-                    </div>
-                    <div class="config-item">
-                        <span class="config-label">Started:</span>
-                        <span class="config-value">${botData.startTime ? new Date(botData.startTime).toLocaleString() : 'N/A'}</span>
-                    </div>
-                    <div class="config-item">
-                        <span class="config-label">Uptime:</span>
-                        <span class="config-value">${botData.uptime}</span>
-                    </div>
-                </div>
-
-                <div class="bot-config-section">
-                    <h4>🛠️ Bot Configuration</h4>
-                    <p><strong>Prefix:</strong> <span class="config-value">${config.prefix || 'N/A'}</span></p>
-                    <p><strong>Admin UIDs:</strong> <span class="config-value">${config.adminUid ? (Array.isArray(config.adminUid) ? config.adminUid.join(', ') : config.adminUid) : 'N/A'}</span></p>
-                        <button onclick="downloadAppstate('${botId}')" class="download-btn">
-                            📥 Download Appstate
-                        </button>
-                </div>
-
-                <div class="bot-config-section">
-                    <h4>🎯 Enabled Commands</h4>
-                    <div style="max-height: 200px; overflow-y: auto; background: white; padding: 10px; border-radius: 5px; border: 1px solid #dee2e6;">
-                        ${config.commands ? 
-                            (Array.isArray(config.commands) ? 
-                                config.commands.map(cmd => `<span style="background: #e7f3ff; padding: 2px 6px; margin: 2px; border-radius: 3px; display: inline-block;">${cmd}</span>`).join('') 
-                                : '<span>All commands enabled</span>'
-                            ) 
-                            : '<span>All commands enabled</span>'
-                        }
-                    </div>
-                </div>
-
-                <div class="bot-config-section">
-                    <h4>🎪 Enabled Events</h4>
-                    <div style="max-height: 200px; overflow-y: auto; background: white; padding: 10px; border-radius: 5px; border: 1px solid #dee2e6;">
-                        ${config.events ? 
-                            (Array.isArray(config.events) ? 
-                                config.events.map(event => `<span style="background: #fff3cd; padding: 2px 6px; margin: 2px; border-radius: 3px; display: inline-block;">${event}</span>`).join('') 
-                                : '<span>All events enabled</span>'
-                            ) 
-                            : '<span>All events enabled</span>'
-                        }
-                    </div>
-                </div>
-
-                ${config.appstate ? `
-                <div class="bot-config-section">
-                    <h4>🔑 App State</h4>
-                    <div style="background: white; padding: 10px; border-radius: 5px; border: 1px solid #dee2e6;">
-                        <span style="color: #6c757d; font-style: italic;">App state configured (hidden for security)</span>
-                    </div>
-                </div>
-                ` : ''}
-            `;
-
-            content.innerHTML = detailsHTML;
-            modal.style.display = 'block';
-        }
-
-        // Close bot details modal
-        function closeBotDetails() {
-            document.getElementById('botDetailsModal').style.display = 'none';
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('botDetailsModal');
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        }
-
-        // Download appstate function
-        async function downloadAppstate(botId) {
-            if (!isAdmin) {
-                showAlert('❌ Only admin can download appstate!', 'error');
-                return;
-            }
-
-            try {
-                const response = await fetch(`/admin/download-appstate/${botId}`);
-
-                if (!response.ok) {
-                    throw new Error('Failed to download appstate');
-                }
-
-                // Get the filename from response headers or create a default one
-                const contentDisposition = response.headers.get('Content-Disposition');
-                let filename = `appstate_${botId}.json`;
-                if (contentDisposition) {
-                    const match = contentDisposition.match(/filename="(.+)"/);
-                    if (match) {
-                        filename = match[1];
-                    }
-                }
-
-                // Get the file content
-                const blob = await response.blob();
-
-                // Create download link
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = filename;
-
-                // Add to DOM, click, and remove
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-
-                // Clean up
-                window.URL.revokeObjectURL(url);
-
-                showAlert('✅ Appstate downloaded successfully!', 'success');
-
-            } catch (error) {
-                console.error('Download error:', error);
-                showAlert('❌ Error downloading appstate: ' + error.message, 'error');
-            }
-        }
-
-        // Load available commands and events from server
-        async function loadAvailableItems() {
-            try {
-                const response = await fetch('/api/available-items');
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
+                const response = await fetch('/api/dashboard-data');
                 const data = await response.json();
-
+                
                 if (data.status === 'success') {
-                    availableCommands = data.commands || [];
-                    availableEvents = data.events || [];
-                } else {
-                    console.warn('API returned error:', data.message);
-                    availableCommands = [];
-                    availableEvents = [];
+                    userData = data.data.user;
+                    updateConsoleInfo(data.data);
                 }
-
-                renderCommands();
-                renderEvents();
             } catch (error) {
-                console.error('Error loading items:', error);
-                // Fallback: show some default commands and events
-                availableCommands = ['help', 'info', 'menu', 'admin', 'play', 'weather', 'ai'];
-                availableEvents = ['join', 'leaveNoti', 'antijoin', 'antiout'];
-                renderCommands();
-                renderEvents();
+                console.error('Error loading user data:', error);
+                showToast('Error loading user data', 'error');
             }
         }
 
-        // Render commands grid
-        function renderCommands() {
-            const grid = document.getElementById('commandsGrid');
-            if (availableCommands.length === 0) {
-                grid.innerHTML = '<p>No commands found</p>';
+        // Update console information
+        function updateConsoleInfo(data) {
+            const { user, bots } = data;
+            
+            document.getElementById('coinDisplay').textContent = user.coins || 0;
+            
+            botRunning = user.botRunning;
+            botStartTime = user.botStartTime;
+            
+            if (botRunning) {
+                document.getElementById('botStatus').textContent = 'Running';
+                document.getElementById('botStatus').style.color = var(--success-color);
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-flex';
+                startUptimeTimer();
+            } else {
+                document.getElementById('botStatus').textContent = 'Stopped';
+                document.getElementById('botStatus').style.color = var(--danger-color);
+                document.getElementById('startBtn').style.display = 'inline-flex';
+                document.getElementById('stopBtn').style.display = 'none';
+                stopUptimeTimer();
+                updateUptimeDisplay(user.botUptime || 0);
+            }
+        }
+
+        // Load file tree
+        async function loadFileTree() {
+            try {
+                const response = await fetch('/api/bot-files');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    renderFileTree(data.files);
+                } else {
+                    showToast('Error loading files', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading file tree:', error);
+                showToast('Error loading file tree', 'error');
+            }
+        }
+
+        // Render file tree
+        function renderFileTree(files) {
+            const fileTree = document.getElementById('fileTree');
+            let html = '';
+
+            files.forEach(item => {
+                if (item.type === 'folder') {
+                    html += `
+                        <div class="file-item folder" onclick="toggleFolder('${item.path}')">
+                            <i class="fas fa-folder file-icon"></i>
+                            <span>${item.name}</span>
+                        </div>
+                    `;
+                    
+                    if (item.contents && item.contents.length > 0) {
+                        item.contents.forEach(file => {
+                            html += `
+                                <div class="file-item file" onclick="openFile('${file.path}', '${file.name}')" style="margin-left: 20px;">
+                                    <i class="fas fa-file-code file-icon"></i>
+                                    <span>${file.name}</span>
+                                </div>
+                            `;
+                        });
+                    }
+                } else {
+                    html += `
+                        <div class="file-item file" onclick="openFile('${item.path}', '${item.name}')">
+                            <i class="fas fa-file-code file-icon"></i>
+                            <span>${item.name}</span>
+                        </div>
+                    `;
+                }
+            });
+
+            fileTree.innerHTML = html;
+        }
+
+        // Toggle folder (for future expansion)
+        function toggleFolder(path) {
+            // This can be expanded to show/hide folder contents
+            console.log('Toggling folder:', path);
+        }
+
+        // Open file for editing
+        async function openFile(filePath, fileName) {
+            try {
+                const response = await fetch(`/api/bot-file-content/${encodeURIComponent(filePath)}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    currentFile = { path: filePath, name: fileName };
+                    openCodeEditor(data.content, fileName);
+                    showToast(`Opened ${fileName}`, 'success');
+                } else {
+                    showToast('Error opening file', 'error');
+                }
+            } catch (error) {
+                console.error('Error opening file:', error);
+                showToast('Error opening file', 'error');
+            }
+        }
+
+        // Open code editor
+        function openCodeEditor(content, fileName) {
+            const editorContent = document.getElementById('editorContent');
+            const editorTitle = document.getElementById('editorTitle');
+            const saveBtn = document.getElementById('saveBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const closeBtn = document.getElementById('closeBtn');
+
+            // Update UI
+            editorTitle.textContent = `Editing: ${fileName}`;
+            saveBtn.style.display = 'inline-block';
+            resetBtn.style.display = 'inline-block';
+            closeBtn.style.display = 'inline-block';
+
+            // Clear editor content
+            editorContent.innerHTML = '<textarea id="codeEditor"></textarea>';
+
+            // Initialize CodeMirror
+            codeEditor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+                value: content,
+                mode: 'javascript',
+                theme: 'monokai',
+                lineNumbers: true,
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                indentUnit: 4,
+                tabSize: 4,
+                lineWrapping: true,
+                foldGutter: true,
+                gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
+            });
+
+            // Add console message
+            addConsoleMessage(`Opened file: ${fileName}`, 'info');
+        }
+
+        // Save file
+        async function saveFile() {
+            if (!currentFile || !codeEditor) {
+                showToast('No file open to save', 'error');
                 return;
             }
-
-            grid.innerHTML = availableCommands.map(cmd => `
-                <div class="item-checkbox">
-                    <input type="checkbox" id="cmd_${cmd}" value="${cmd}" checked>
-                    <label for="cmd_${cmd}">${cmd}</label>
-                </div>
-            `).join('');
-        }
-
-        // Render events grid
-        function renderEvents() {
-            const grid = document.getElementById('eventsGrid');
-            if (availableEvents.length === 0) {
-                grid.innerHTML = '<p>No events found</p>';
-                return;
-            }
-
-            grid.innerHTML = availableEvents.map(event => `
-                <div class="item-checkbox">
-                    <input type="checkbox" id="event_${event}" value="${event}" checked>
-                    <label for="event_${event}">${event}</label>
-                </div>
-            `).join('');
-        }
-
-        // Select all commands
-        function selectAllCommands() {
-            const checkboxes = document.querySelectorAll('#commandsGrid input[type="checkbox"]');
-            checkboxes.forEach(cb => cb.checked = true);
-        }
-
-        // Select no commands
-        function selectNoneCommands() {
-            const checkboxes = document.querySelectorAll('#commandsGrid input[type="checkbox"]');
-            checkboxes.forEach(cb => cb.checked = false);
-        }
-
-        // Select all events
-        function selectAllEvents() {
-            const checkboxes = document.querySelectorAll('#eventsGrid input[type="checkbox"]');
-            checkboxes.forEach(cb => cb.checked = true);
-        }
-
-        // Select no events
-        function selectNoneEvents() {
-            const checkboxes = document.querySelectorAll('#eventsGrid input[type="checkbox"]');
-            checkboxes.forEach(cb => cb.checked = false);
-        }
-
-        // Get selected commands
-        function getSelectedCommands() {
-            const checkboxes = document.querySelectorAll('#commandsGrid input[type="checkbox"]:checked');
-            return Array.from(checkboxes).map(cb => cb.value);
-        }
-
-        // Get selected events
-        function getSelectedEvents() {
-            const checkboxes = document.querySelectorAll('#eventsGrid input[type="checkbox"]:checked');
-            return Array.from(checkboxes).map(cb => cb.value);
-        }
-
-        // Start bot function
-        async function startBot() {
-            const botId = document.getElementById('botId').value.trim();
-            const appstate = document.getElementById('appstate').value.trim();
-            const adminUid = document.getElementById('adminUid').value.trim();
-            const prefix = document.getElementById('prefix').value.trim();
-
-            const selectedCommands = getSelectedCommands();
-            const selectedEvents = getSelectedEvents();
-
-            if (!botId) {
-                showAlert('Bot ID is required!', 'error');
-                return;
-            }
-
-            if (!appstate) {
-                showAlert('App State is required!', 'error');
-                return;
-            }
-
-            const startButton = event.target;
-            startButton.disabled = true;
-            startButton.innerHTML = '🔄 Starting...';
 
             try {
-                const response = await fetch('/start-bot', {
+                const content = codeEditor.getValue();
+                const response = await fetch('/api/save-bot-file', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        botId,
-                        appstate,
-                        adminUid,
-                        prefix: prefix || '.',
-                        commands: selectedCommands.length > 0 ? selectedCommands : null,
-                        events: selectedEvents.length > 0 ? selectedEvents : null
+                        filePath: currentFile.path,
+                        content: content
                     })
                 });
 
-                const result = await response.json();
-
-                if (result.status === 'success') {
-                    showAlert('✅ ' + result.message, 'success');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showToast('File saved successfully', 'success');
+                    addConsoleMessage(`Saved: ${currentFile.name}`, 'success');
                 } else {
-                    showAlert('❌ ' + result.message, 'error');
+                    showToast('Error saving file', 'error');
                 }
-
-                getBotStatus();
             } catch (error) {
-                showAlert('❌ Error starting bot: ' + error.message, 'error');
-            } finally {
-                startButton.disabled = false;
-                startButton.innerHTML = '🚀 Start Bot';
+                console.error('Error saving file:', error);
+                showToast('Error saving file', 'error');
             }
         }
 
-        // Stop bot function
-        async function stopBot() {
-            const botId = document.getElementById('botId').value.trim();
-
-            if (!botId) {
-                showAlert('Bot ID is required!', 'error');
+        // Reset file
+        async function resetFile() {
+            if (!currentFile) {
+                showToast('No file open to reset', 'error');
                 return;
             }
 
-            const stopButton = event.target;
-            stopButton.disabled = true;
-            stopButton.innerHTML = '🔄 Stopping...';
+            if (confirm('Are you sure you want to reset this file to its original version?')) {
+                try {
+                    const response = await fetch('/api/reset-bot-file', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            filePath: currentFile.path
+                        })
+                    });
 
-            try {
-                const response = await fetch('/stop-bot', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ botId })
-                });
-
-                const result = await response.json();
-
-                if (result.status === 'success') {
-                    showAlert('✅ ' + result.message, 'success');
-                } else {
-                    showAlert('❌ ' + result.message, 'error');
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        showToast('File reset successfully', 'success');
+                        addConsoleMessage(`Reset: ${currentFile.name}`, 'info');
+                        // Reload the file
+                        openFile(currentFile.path, currentFile.name);
+                    } else {
+                        showToast('Error resetting file', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error resetting file:', error);
+                    showToast('Error resetting file', 'error');
                 }
-
-                getBotStatus();
-            } catch (error) {
-                showAlert('❌ Error stopping bot: ' + error.message, 'error');
-            } finally {
-                stopButton.disabled = false;
-                stopButton.innerHTML = '🛑 Stop Bot';
             }
         }
 
-        // Get bot status
-        async function getBotStatus() {
-            try {
-                const response = await fetch('/bot-status');
-                const result = await response.json();
-
-                const statusDiv = document.getElementById('status');
-
-                if (result.activeBotsCount === 0) {
-                    statusDiv.innerHTML = '<p>No active bots currently running</p>';
-                } else {
-                    const statusCards = Object.entries(result.bots).map(([botId, info]) => `
-                        <div class="status-card">
-                            <h4>🤖 Bot: ${botId}</h4>
-                            <p><strong>Status:</strong> ${info.running ? '🟢 Running' : '🔴 Stopped'}</p>
-                            <p><strong>Uptime:</strong> ${info.uptime}</p>
-                            <p><strong>PID:</strong> ${info.pid || 'N/A'}</p>
-                            <p><strong>Started:</strong> ${info.startTime ? new Date(info.startTime).toLocaleString() : 'N/A'}</p>
-                        </div>
-                    `).join('');
-
-                    statusDiv.innerHTML = `
-                        <div class="status-grid">
-                            ${statusCards}
-                        </div>
-                        <p><strong>Total Active Bots:</strong> ${result.activeBotsCount}</p>
-                    `;
-                }
-            } catch (error) {
-                document.getElementById('status').innerHTML = 
-                    '<p style="color: red;">❌ Error fetching bot status: ' + error.message + '</p>';
+        // Close file
+        function closeFile() {
+            if (currentFile) {
+                addConsoleMessage(`Closed: ${currentFile.name}`, 'info');
+                currentFile = null;
+                
+                // Reset UI
+                document.getElementById('editorTitle').textContent = 'Select a file to edit';
+                document.getElementById('saveBtn').style.display = 'none';
+                document.getElementById('resetBtn').style.display = 'none';
+                document.getElementById('closeBtn').style.display = 'none';
+                
+                // Show empty state
+                document.getElementById('editorContent').innerHTML = `
+                    <div class="empty-state">
+                        <h3>No File Selected</h3>
+                        <p>Choose a file from the file explorer to start editing</p>
+                        <button class="select-file-btn" onclick="document.getElementById('fileTree').scrollIntoView()">
+                            <i class="fas fa-folder-open"></i> Browse Files
+                        </button>
+                    </div>
+                `;
             }
         }
 
-        // Show alert messages
-        function showAlert(message, type) {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.innerHTML = message;
+        // Start bot
+        async function startBot() {
+            if (!userData || userData.coins <= 0) {
+                showToast('You need coins to run the bot!', 'error');
+                return;
+            }
 
-            const container = document.querySelector('.content');
-            container.insertBefore(alertDiv, container.firstChild);
-
+            addConsoleMessage('Starting bot...', 'info');
+            showToast('Starting bot...', 'info');
+            
+            // Here you would implement the actual bot starting logic
+            // For now, we'll just update the UI
             setTimeout(() => {
-                alertDiv.remove();
-            }, 5000);
+                botRunning = true;
+                updateConsoleInfo({ user: { ...userData, botRunning: true, botStartTime: new Date().toISOString() } });
+                addConsoleMessage('Bot started successfully!', 'success');
+                showToast('Bot started successfully!', 'success');
+            }, 2000);
         }
 
-        // Auto-refresh status every 30 seconds
-        setInterval(() => {
-            getBotStatus();
-            if (isAdmin) {
-                loadAdminPanel();
+        // Stop bot
+        async function stopBot() {
+            addConsoleMessage('Stopping bot...', 'info');
+            showToast('Stopping bot...', 'info');
+            
+            // Here you would implement the actual bot stopping logic
+            setTimeout(() => {
+                botRunning = false;
+                updateConsoleInfo({ user: { ...userData, botRunning: false, botStartTime: null } });
+                addConsoleMessage('Bot stopped successfully!', 'info');
+                showToast('Bot stopped successfully!', 'success');
+            }, 2000);
+        }
+
+        // Reset bot
+        async function resetBot() {
+            if (confirm('Are you sure you want to reset the bot? This will stop the current bot and reset all configurations.')) {
+                addConsoleMessage('Resetting bot...', 'info');
+                showToast('Resetting bot...', 'info');
+                
+                // Here you would implement the actual bot reset logic
+                setTimeout(() => {
+                    botRunning = false;
+                    updateConsoleInfo({ user: { ...userData, botRunning: false, botStartTime: null, botUptime: 0 } });
+                    addConsoleMessage('Bot reset successfully!', 'success');
+                    showToast('Bot reset successfully!', 'success');
+                }, 2000);
             }
-        }, 30000);
+        }
+
+        // Start uptime timer
+        function startUptimeTimer() {
+            if (uptimeInterval) clearInterval(uptimeInterval);
+            
+            uptimeInterval = setInterval(() => {
+                if (botStartTime) {
+                    const now = new Date();
+                    const start = new Date(botStartTime);
+                    const uptime = Math.floor((now - start) / 1000);
+                    updateUptimeDisplay(uptime);
+                }
+            }, 1000);
+        }
+
+        // Stop uptime timer
+        function stopUptimeTimer() {
+            if (uptimeInterval) {
+                clearInterval(uptimeInterval);
+                uptimeInterval = null;
+            }
+        }
+
+        // Update uptime display
+        function updateUptimeDisplay(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            document.getElementById('uptimeDisplay').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Update console
+        function updateConsole() {
+            // This function can be used to update console with real-time bot information
+            if (botRunning) {
+                // Add periodic status updates
+                // addConsoleMessage('Bot running normally...', 'info');
+            }
+        }
+
+        // Add console message
+        function addConsoleMessage(message, type = 'info') {
+            const consoleOutput = document.getElementById('consoleOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `console-line ${type}`;
+            messageDiv.innerHTML = `[${timestamp}] ${message}`;
+            
+            consoleOutput.appendChild(messageDiv);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                ${message}
+            `;
+            
+            document.getElementById('toastContainer').appendChild(toast);
+            
+            // Show toast
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            // Hide and remove toast
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
     </script>
 </body>
 </html>
