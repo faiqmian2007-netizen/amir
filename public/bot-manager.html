@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 Bot Manager - Console & File Editor</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left h1 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .header-left p {
+            opacity: 0.9;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .coin-display {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #333;
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .back-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .back-btn:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: calc(100vh - 140px);
+        }
+
+        .sidebar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            margin-bottom: 25px;
+        }
+
+        .sidebar-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .file-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .file-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .file-item.active {
+            background: rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+        }
+
+        .file-icon {
+            margin-right: 8px;
+            color: #667eea;
+        }
+
+        .folder-item {
+            background: rgba(255, 215, 0, 0.2);
+            border-color: #ffd700;
+        }
+
+        .folder-item .file-icon {
+            color: #ffd700;
+        }
+
+        .main-content {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .console-section {
+            background: #1e1e1e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #333;
+        }
+
+        .console-title {
+            font-size: 1.3rem;
+            color: #667eea;
+        }
+
+        .console-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .start-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .stop-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        .reset-btn {
+            background: #ff9800;
+            color: white;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .console-output {
+            background: #000;
+            border-radius: 8px;
+            padding: 15px;
+            flex: 1;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #00ff00;
+        }
+
+        .console-line {
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+
+        .console-line.error {
+            color: #ff4444;
+        }
+
+        .console-line.warning {
+            color: #ffaa00;
+        }
+
+        .console-line.info {
+            color: #00aaff;
+        }
+
+        .editor-section {
+            background: #1e1e1e;
+            border-radius: 10px;
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #333;
+        }
+
+        .editor-title {
+            font-size: 1.3rem;
+            color: #667eea;
+        }
+
+        .editor-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .editor-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .save-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .close-btn {
+            background: #6c757d;
+            color: white;
+        }
+
+        .reset-code-btn {
+            background: #ff9800;
+            color: white;
+        }
+
+        .editor-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .CodeMirror {
+            flex: 1;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .CodeMirror-gutters {
+            background: #2d2d2d;
+            border-right: 1px solid #444;
+        }
+
+        .CodeMirror-linenumber {
+            color: #888;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #4CAF50;
+        }
+
+        .notification.error {
+            background: #f44336;
+        }
+
+        .notification.info {
+            background: #2196F3;
+        }
+
+        .uptime-display {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .coins-remaining {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #333;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .sidebar {
+                order: 2;
+            }
+            
+            .main-content {
+                order: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .console-controls,
+            .editor-controls {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1><i class="fas fa-robot"></i> Bot Manager</h1>
+                <p>Console & File Editor</p>
+            </div>
+            <div class="header-right">
+                <div class="coin-display">
+                    <i class="fas fa-coins"></i> <span id="userCoins">0</span> Coins
+                </div>
+                <a href="/dashboard" class="back-btn">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">
+                    <i class="fas fa-folder"></i> Project Structure
+                </div>
+                <div id="fileTree">
+                    <!-- File tree will be populated here -->
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">
+                    <i class="fas fa-plus"></i> Quick Actions
+                </div>
+                <button class="file-item" onclick="createNewFile()">
+                    <i class="fas fa-file-plus file-icon"></i> New File
+                </button>
+                <button class="file-item" onclick="createNewFolder()">
+                    <i class="fas fa-folder-plus file-icon"></i> New Folder
+                </button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="console-section">
+                <div class="console-header">
+                    <div class="console-title">
+                        <i class="fas fa-terminal"></i> Bot Console
+                    </div>
+                    <div class="console-controls">
+                        <button class="control-btn start-btn" onclick="startBot()">
+                            <i class="fas fa-play"></i> Start Bot
+                        </button>
+                        <button class="control-btn stop-btn" onclick="stopBot()">
+                            <i class="fas fa-stop"></i> Stop Bot
+                        </button>
+                        <button class="control-btn reset-btn" onclick="resetBot()">
+                            <i class="fas fa-redo"></i> Reset Bot
+                        </button>
+                    </div>
+                </div>
+                <div class="console-output" id="consoleOutput">
+                    <div class="console-line info">Welcome to Bot Manager Console</div>
+                    <div class="console-line">Ready to manage your bot...</div>
+                </div>
+                <div class="uptime-display" id="uptimeDisplay" style="display: none;">
+                    <i class="fas fa-clock"></i> Uptime: <span id="uptimeText">00:00:00</span>
+                </div>
+                <div class="coins-remaining" id="coinsRemaining" style="display: none;">
+                    <i class="fas fa-coins"></i> <span id="remainingCoins">0</span> coins remaining
+                </div>
+            </div>
+
+            <div class="editor-section" id="editorSection" style="display: none;">
+                <div class="editor-header">
+                    <div class="editor-title">
+                        <i class="fas fa-code"></i> Code Editor - <span id="currentFileName">untitled</span>
+                    </div>
+                    <div class="editor-controls">
+                        <button class="editor-btn save-btn" onclick="saveFile()">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <button class="editor-btn reset-code-btn" onclick="resetCode()">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                        <button class="editor-btn close-btn" onclick="closeEditor()">
+                            <i class="fas fa-times"></i> Close
+                        </button>
+                    </div>
+                </div>
+                <textarea id="codeEditor"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notification" class="notification"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/json/json.min.js"></script>
+    <script>
+        let currentFile = null;
+        let codeMirror = null;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            loadUserCoins();
+            loadFileTree();
+            initializeCodeMirror();
+            loadBotStatus();
+            // Auto-refresh bot status every 10 seconds
+            setInterval(loadBotStatus, 10000);
+        });
+
+        function checkAuth() {
+            fetch('/api/check-auth')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status !== 'authenticated') {
+                        window.location.href = '/login';
+                    }
+                })
+                .catch(error => {
+                    console.error('Auth check error:', error);
+                    window.location.href = '/login';
+                });
+        }
+
+        function loadUserCoins() {
+            fetch('/api/user-coins')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('userCoins').textContent = data.coins;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading coins:', error);
+                });
+        }
+
+        function loadBotStatus() {
+            fetch('/api/bot-status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updateConsoleWithBotStatus(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading bot status:', error);
+                });
+        }
+
+        function updateConsoleWithBotStatus(data) {
+            if (data.activeBots.length > 0) {
+                // Show uptime and coins remaining for active bots
+                document.getElementById('uptimeDisplay').style.display = 'block';
+                document.getElementById('coinsRemaining').style.display = 'block';
+                
+                // Update console with bot status
+                addConsoleLine(`Active bots: ${data.activeBots.length}`, 'info');
+                data.activeBots.forEach(bot => {
+                    addConsoleLine(`Bot ${bot.botId}: Running for ${bot.uptimeFormatted}, Remaining: ${bot.remainingTimeFormatted}`, 'info');
+                });
+            } else {
+                document.getElementById('uptimeDisplay').style.display = 'none';
+                document.getElementById('coinsRemaining').style.display = 'none';
+                addConsoleLine('No bots currently running', 'warning');
+            }
+        }
+
+        function loadFileTree() {
+            // This would fetch the actual file structure from the server
+            const fileTree = [
+                { name: 'Priyansh', type: 'folder', children: [
+                    { name: 'commands', type: 'folder', children: [
+                        { name: 'ping.js', type: 'file' },
+                        { name: 'help.js', type: 'file' },
+                        { name: 'info.js', type: 'file' }
+                    ]},
+                    { name: 'events', type: 'folder', children: [
+                        { name: 'message.js', type: 'file' },
+                        { name: 'join.js', type: 'file' }
+                    ]}
+                ]},
+                { name: 'appstate.json', type: 'file' },
+                { name: 'config.json', type: 'file' }
+            ];
+
+            renderFileTree(fileTree);
+        }
+
+        function renderFileTree(items, parentElement = null, level = 0) {
+            const container = parentElement || document.getElementById('fileTree');
+            if (!parentElement) container.innerHTML = '';
+
+            items.forEach(item => {
+                const itemElement = document.createElement('div');
+                itemElement.className = `file-item ${item.type === 'folder' ? 'folder-item' : ''}`;
+                itemElement.style.paddingLeft = (level * 20 + 12) + 'px';
+                
+                const icon = item.type === 'folder' ? 'fa-folder' : 'fa-file-code';
+                itemElement.innerHTML = `<i class="fas ${icon} file-icon"></i>${item.name}`;
+                
+                if (item.type === 'file') {
+                    itemElement.onclick = () => openFile(item.name);
+                } else if (item.type === 'folder') {
+                    itemElement.onclick = () => toggleFolder(itemElement, item);
+                }
+                
+                container.appendChild(itemElement);
+                
+                if (item.children && item.children.length > 0) {
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.className = 'folder-children';
+                    childrenContainer.style.display = 'none';
+                    container.appendChild(childrenContainer);
+                    
+                    renderFileTree(item.children, childrenContainer, level + 1);
+                }
+            });
+        }
+
+        function toggleFolder(element, item) {
+            const children = element.nextElementSibling;
+            if (children && children.className === 'folder-children') {
+                children.style.display = children.style.display === 'none' ? 'block' : 'none';
+                const icon = element.querySelector('.file-icon');
+                icon.className = children.style.display === 'none' ? 'fas fa-folder file-icon' : 'fas fa-folder-open file-icon';
+            }
+        }
+
+        function openFile(fileName) {
+            currentFile = fileName;
+            document.getElementById('currentFileName').textContent = fileName;
+            document.getElementById('editorSection').style.display = 'flex';
+            
+            // Load file content (this would fetch from server)
+            const content = getFileContent(fileName);
+            if (codeMirror) {
+                codeMirror.setValue(content);
+            }
+            
+            showNotification(`Opened file: ${fileName}`, 'info');
+        }
+
+        function getFileContent(fileName) {
+            // This would fetch actual file content from server
+            const sampleContent = {
+                'ping.js': `module.exports.config = {
+    name: "ping",
+    version: "1.0.0",
+    hasPermssion: 0,
+    credits: "Your Name",
+    description: "Ping command",
+    commandCategory: "system",
+    usages: "ping",
+    cooldowns: 5
+};
+
+module.exports.run = function ({ api, event }) {
+    api.sendMessage("Pong!", event.threadID);
+};`,
+                'config.json': `{
+    "PREFIX": ".",
+    "BOTNAME": "Amir Bot",
+    "ADMINBOT": ["your_uid_here"],
+    "AUTO_RESTART": true
+}`,
+                'appstate.json': `[
+    {
+        "appID": "your_app_id",
+        "appSecret": "your_app_secret",
+        "accessToken": "your_access_token"
+    }
+]`
+            };
+            
+            return sampleContent[fileName] || `// ${fileName}\n// File content will be loaded here`;
+        }
+
+        function initializeCodeMirror() {
+            const textarea = document.getElementById('codeEditor');
+            codeMirror = CodeMirror.fromTextArea(textarea, {
+                mode: 'javascript',
+                theme: 'monokai',
+                lineNumbers: true,
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                indentUnit: 4,
+                tabSize: 4,
+                lineWrapping: true,
+                foldGutter: true,
+                gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
+            });
+        }
+
+        function saveFile() {
+            if (!currentFile) {
+                showNotification('No file open to save', 'error');
+                return;
+            }
+
+            const content = codeMirror.getValue();
+            
+            // This would save to server
+            showNotification(`Saving ${currentFile}...`, 'info');
+            
+            // Simulate save
+            setTimeout(() => {
+                showNotification(`File ${currentFile} saved successfully!`, 'success');
+            }, 1000);
+        }
+
+        function resetCode() {
+            if (!currentFile) {
+                showNotification('No file open to reset', 'error');
+                return;
+            }
+
+            if (confirm(`Are you sure you want to reset ${currentFile} to original content?`)) {
+                const originalContent = getFileContent(currentFile);
+                codeMirror.setValue(originalContent);
+                showNotification(`File ${currentFile} reset to original content`, 'success');
+            }
+        }
+
+        function closeEditor() {
+            document.getElementById('editorSection').style.display = 'none';
+            currentFile = null;
+            showNotification('Editor closed', 'info');
+        }
+
+        function createNewFile() {
+            const fileName = prompt('Enter file name:');
+            if (fileName) {
+                showNotification(`Creating new file: ${fileName}`, 'info');
+                // This would create file on server
+                loadFileTree(); // Refresh file tree
+            }
+        }
+
+        function createNewFolder() {
+            const folderName = prompt('Enter folder name:');
+            if (folderName) {
+                showNotification(`Creating new folder: ${folderName}`, 'info');
+                // This would create folder on server
+                loadFileTree(); // Refresh file tree
+            }
+        }
+
+        // Bot control functions
+        function startBot() {
+            addConsoleLine('Starting bot...', 'info');
+            showNotification('Starting bot...', 'info');
+            
+            // This would actually start the bot via API
+            // For now, just show the message
+            addConsoleLine('Use the Create Bot feature to start a new bot', 'info');
+            showNotification('Use Create Bot to start a new bot', 'info');
+        }
+
+        function stopBot() {
+            addConsoleLine('Stopping bot...', 'warning');
+            showNotification('Stopping bot...', 'info');
+            
+            // This would actually stop the bot via API
+            addConsoleLine('Use the bot management interface to stop bots', 'info');
+            showNotification('Use bot management to stop bots', 'info');
+        }
+
+        function resetBot() {
+            addConsoleLine('Resetting bot...', 'warning');
+            showNotification('Resetting bot...', 'info');
+            
+            // This would actually reset the bot via API
+            addConsoleLine('Use the bot management interface to reset bots', 'info');
+            showNotification('Use bot management to reset bots', 'info');
+        }
+
+        function addConsoleLine(message, type = 'info') {
+            const console = document.getElementById('consoleOutput');
+            const line = document.createElement('div');
+            line.className = `console-line ${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            console.appendChild(line);
+            console.scrollTop = console.scrollHeight;
+        }
+
+
+
+        function updateCoinsRemaining() {
+            // This would get actual remaining coins from server
+            const remaining = Math.floor(Math.random() * 10) + 1;
+            document.getElementById('remainingCoins').textContent = remaining;
+        }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Add some sample console output
+        setTimeout(() => {
+            addConsoleLine('System initialized', 'info');
+            addConsoleLine('Ready for bot management', 'info');
+        }, 1000);
+    </script>
+</body>
+</html>
